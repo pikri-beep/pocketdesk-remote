@@ -230,12 +230,24 @@
         </div>
 
         <!-- 1. MODE TOUCHPAD (Default) -->
-        <div id="touchpad-container" class="w-full h-full relative flex flex-col">
-          <div id="touchpad-area" class="w-full h-full trackpad-surface flex items-center justify-center cursor-crosshair">
-            <div class="pointer-events-none flex flex-col items-center justify-center opacity-30 gap-1">
+        <div id="touchpad-container" class="w-full h-full relative flex">
+          <!-- Main Trackpad Surface (1-Finger Move, Tap Click, 2-Finger Scroll) -->
+          <div id="touchpad-area" class="flex-1 h-full trackpad-surface flex items-center justify-center cursor-crosshair relative">
+            <div class="pointer-events-none flex flex-col items-center justify-center opacity-30 gap-1 pr-6">
               <i data-lucide="mouse-pointer-2" class="w-6 h-6 text-white"></i>
               <span class="text-[10px] tracking-wider font-mono text-white">TOUCHPAD / 2-FINGER SCROLL</span>
             </div>
+          </div>
+
+          <!-- One-Thumb Scroll Strip (28px) -->
+          <div id="scroll-strip" class="w-7 h-full bg-[#181818]/90 border-l border-white/5 flex flex-col items-center justify-between py-2 cursor-ns-resize touch-none z-10 select-none hover:bg-[#222222] transition-colors" title="Geser 1 Jempol Naik/Turun untuk Scroll Layar">
+            <i data-lucide="chevron-up" class="w-3.5 h-3.5 text-white/20 shrink-0"></i>
+            <div class="flex flex-col items-center gap-1.5 opacity-25">
+              <div class="w-1 h-1 rounded-full bg-remote-accent"></div>
+              <div class="w-0.5 h-6 rounded-full bg-white/40"></div>
+              <div class="w-1 h-1 rounded-full bg-remote-accent"></div>
+            </div>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-white/20 shrink-0"></i>
           </div>
         </div>
 
@@ -351,9 +363,9 @@
           </div>
 
           <!-- Tombol Cepat Buka Chrome -->
-          <button onclick="openChrome()" class="tactile-btn h-9 rounded-xl text-xs font-medium text-remote-text gap-2" title="Buka Browser Chrome di Laptop">
-            <i data-lucide="chrome" class="w-4 h-4 text-amber-400"></i>
-            <span>Buka Chrome</span>
+          <button onclick="openChrome()" class="tactile-btn w-full h-9 rounded-xl text-xs font-medium text-remote-text flex items-center justify-center gap-2" title="Buka Browser Chrome di Laptop">
+            <i data-lucide="chrome" class="w-4 h-4 text-amber-400 shrink-0"></i>
+            <span class="leading-none text-center">Buka Chrome</span>
           </button>
         </div>
 
@@ -364,11 +376,11 @@
             <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
           </button>
 
-          <!-- Brightness Icon & Value -->
-          <div class="w-full flex-1 my-1 flex flex-col items-center justify-center gap-0.5">
-            <i data-lucide="sun-medium" class="w-3.5 h-3.5 text-remote-dim"></i>
+          <!-- Quick Brightness Toggle (20% / 80%) + Level -->
+          <button id="btn-bright-toggle" onclick="toggleQuickBrightness()" class="tactile-btn w-full flex-1 my-1 rounded-xl flex-col gap-0.5" title="Toggle Kecerahan Cepat: 20% (Malam) / 80% (Normal)">
+            <i id="bright-icon" data-lucide="sun-medium" class="w-4 h-4 text-amber-400"></i>
             <span id="bright-level-text" class="text-[10px] font-mono font-bold text-amber-400">70%</span>
-          </div>
+          </button>
 
           <!-- Brightness - -->
           <button onclick="stepBrightness(-10)" class="tactile-btn w-full h-9 rounded-xl text-remote-text" title="Kecerahan -10%">
@@ -1022,7 +1034,17 @@
 
         // Update Brightness UI
         const brightText = document.getElementById('bright-level-text');
+        const brightIcon = document.getElementById('bright-icon');
         if (brightText) brightText.innerText = `${currentBrightness}%`;
+        if (brightIcon) {
+          if (currentBrightness <= 25) {
+            brightIcon.setAttribute('data-lucide', 'moon');
+            brightIcon.className = 'w-4 h-4 text-sky-400';
+          } else {
+            brightIcon.setAttribute('data-lucide', 'sun-medium');
+            brightIcon.className = 'w-4 h-4 text-amber-400';
+          }
+        }
 
         // Update Battery
         const batBox = document.getElementById('bat-box');
@@ -1110,7 +1132,45 @@
       const res = await apiPost('/api/brightness', { brightness: newBright });
       if (res.success) {
         currentBrightness = newBright;
-        document.getElementById('bright-level-text').innerText = `${currentBrightness}%`;
+        const brightText = document.getElementById('bright-level-text');
+        const brightIcon = document.getElementById('bright-icon');
+        if (brightText) brightText.innerText = `${currentBrightness}%`;
+        if (brightIcon) {
+          if (currentBrightness <= 25) {
+            brightIcon.setAttribute('data-lucide', 'moon');
+            brightIcon.className = 'w-4 h-4 text-sky-400';
+          } else {
+            brightIcon.setAttribute('data-lucide', 'sun-medium');
+            brightIcon.className = 'w-4 h-4 text-amber-400';
+          }
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+    }
+
+    // Toggle Quick Brightness: 20% (Night Mode) vs 80% (Normal Mode)
+    async function toggleQuickBrightness() {
+      haptic(25);
+      // Jika kecerahan saat ini > 40%, beralih ke Mode Malam (20%). Jika <= 40%, beralih ke Mode Normal (80%)
+      const target = currentBrightness > 40 ? 20 : 80;
+      const res = await apiPost('/api/brightness', { brightness: target });
+      if (res.success) {
+        currentBrightness = target;
+        const brightText = document.getElementById('bright-level-text');
+        const brightIcon = document.getElementById('bright-icon');
+        if (brightText) brightText.innerText = `${currentBrightness}%`;
+        if (brightIcon) {
+          if (target <= 20) {
+            brightIcon.setAttribute('data-lucide', 'moon');
+            brightIcon.className = 'w-4 h-4 text-sky-400';
+            showToast('Kecerahan: Mode Malam (20%)', 'info');
+          } else {
+            brightIcon.setAttribute('data-lucide', 'sun-medium');
+            brightIcon.className = 'w-4 h-4 text-amber-400';
+            showToast('Kecerahan: Mode Normal (80%)', 'info');
+          }
+          if (window.lucide) lucide.createIcons();
+        }
       }
     }
 
@@ -1398,11 +1458,95 @@
       if (res.success) showToast('Perintah shutdown dibatalkan!', 'success');
     }
 
+    // Setup One-Thumb Scroll Strip Listeners
+    function setupScrollStrip() {
+      const strip = document.getElementById('scroll-strip');
+      if (!strip) return;
+
+      let lastY = 0;
+      let accumulatedY = 0;
+
+      strip.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        haptic(15);
+        if (e.touches.length > 0) {
+          lastY = e.touches[0].clientY;
+          accumulatedY = 0;
+          strip.classList.add('bg-remote-accent/20', 'border-remote-accent/40');
+        }
+      }, { passive: false });
+
+      strip.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.touches.length > 0) {
+          const currentY = e.touches[0].clientY;
+          const deltaY = currentY - lastY;
+          lastY = currentY;
+          accumulatedY += deltaY;
+
+          // Setiap pergeseran 7px jempol, kirim 1 event scroll
+          if (Math.abs(accumulatedY) >= 7) {
+            const scrollUnits = accumulatedY > 0 ? 80 : -80;
+            accumulatedY = 0;
+            haptic(10);
+            if (socket && socket.readyState === WebSocket.OPEN) {
+              socket.send(JSON.stringify({ type: 'scroll', dy: scrollUnits }));
+            } else {
+              apiPost('/api/mouse/scroll', { direction: scrollUnits > 0 ? 'up' : 'down', amount: 80 });
+            }
+          }
+        }
+      }, { passive: false });
+
+      strip.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        strip.classList.remove('bg-remote-accent/20', 'border-remote-accent/40');
+      }, { passive: false });
+
+      strip.addEventListener('touchcancel', () => {
+        strip.classList.remove('bg-remote-accent/20', 'border-remote-accent/40');
+      });
+
+      // Desktop mouse drag support
+      let isMouseDown = false;
+      strip.addEventListener('mousedown', (e) => {
+        isMouseDown = true;
+        lastY = e.clientY;
+        accumulatedY = 0;
+        strip.classList.add('bg-remote-accent/20', 'border-remote-accent/40');
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!isMouseDown) return;
+        const deltaY = e.clientY - lastY;
+        lastY = e.clientY;
+        accumulatedY += deltaY;
+        if (Math.abs(accumulatedY) >= 7) {
+          const scrollUnits = accumulatedY > 0 ? 80 : -80;
+          accumulatedY = 0;
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: 'scroll', dy: scrollUnits }));
+          } else {
+            apiPost('/api/mouse/scroll', { direction: scrollUnits > 0 ? 'up' : 'down', amount: 80 });
+          }
+        }
+      });
+      window.addEventListener('mouseup', () => {
+        if (isMouseDown) {
+          isMouseDown = false;
+          strip.classList.remove('bg-remote-accent/20', 'border-remote-accent/40');
+        }
+      });
+    }
+
     // Initialization
     window.addEventListener('DOMContentLoaded', () => {
       if (window.lucide) lucide.createIcons();
       initWebSocket();
       setupTouchpad();
+      setupScrollStrip();
       loadSystemStatus();
 
       // Polling telemetry status every 3.5s
