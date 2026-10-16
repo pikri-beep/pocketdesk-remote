@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>PocketDesk Remote v2.0</title>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            remote: {
+              body: '#121212',
+              chassis: '#181818',
+              surface: '#202020',
+              surfaceHover: '#2a2a2a',
+              border: '#2c2c2c',
+              borderLight: '#3a3a3a',
+              accent: '#d97757',
+              accentHover: '#e28567',
+              text: '#f2f2f2',
+              muted: '#8e8e8e',
+              dim: '#555555',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100dvh;
+      width: 100%;
+      overflow: hidden;
+      background-color: #0d0d0d;
+      color: #f2f2f2;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    input, textarea {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    /* Tactile hardware button styles */
+    .tactile-btn {
+      background: linear-gradient(180deg, #242424 0%, #1a1a1a 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      border-bottom: 2px solid rgba(0, 0, 0, 0.6);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 2px 4px rgba(0, 0, 0, 0.4);
+      transition: all 0.08s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .tactile-btn:active {
+      transform: scale(0.95);
+      background: linear-gradient(180deg, #181818 0%, #141414 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.8);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+      filter: brightness(0.95);
+    }
+
+    /* Primary Accent Button */
+    .tactile-btn-accent {
+      background: linear-gradient(180deg, #e28567 0%, #c96545 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.25);
+      border-bottom: 2px solid rgba(0, 0, 0, 0.5);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 2px 6px rgba(217, 119, 87, 0.3);
+      color: #ffffff;
+      transition: all 0.08s ease;
+    }
+
+    .tactile-btn-accent:active {
+      transform: scale(0.95);
+      background: linear-gradient(180deg, #c96545 0%, #ab5033 100%);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Danger / Power Button */
+    .tactile-btn-danger {
+      background: linear-gradient(180deg, rgba(239, 68, 68, 0.2) 0%, rgba(185, 28, 28, 0.25) 100%);
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      border-top: 1px solid rgba(255, 120, 120, 0.35);
+      color: #f87171;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.15);
+      transition: all 0.08s ease;
+    }
+
+    .tactile-btn-danger:active {
+      transform: scale(0.92);
+      background: rgba(239, 68, 68, 0.35);
+    }
+
+    /* Trackpad Textured Surface */
+    .trackpad-surface {
+      background-color: #151515;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+      background-size: 16px 16px;
+      touch-action: none;
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Custom range slider */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: #2a2a2a;
+      height: 6px;
+      border-radius: 9999px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: #d97757;
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+      cursor: pointer;
+    }
+
+    /* Animations */
+    @keyframes sheetUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .animate-sheet-up {
+      animation: sheetUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Scrollbar styling for modal sheets */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #333333;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center bg-[#0a0a0a]">
+
+  <!-- =================================================================== -->
+  <!-- MAIN TACTILE HARDWARE REMOTE CHASSIS (100dvh Zero-Scroll) -->
+  <!-- =================================================================== -->
+  <div class="h-[100dvh] w-full max-w-sm mx-auto flex flex-col justify-between p-3 sm:p-4 overflow-hidden select-none bg-[#121212] border-x border-[#222222] shadow-2xl relative">
+
+    <!-- ----------------------------------------------------------------- -->
+    <!-- ROW 1: TOP HARDWARE BAR (Header Remot) -->
+    <!-- ----------------------------------------------------------------- -->
+    <header class="flex items-center justify-between shrink-0 h-10 px-1">
+      <!-- Kiri: Link Scan QR/Home + LED Status + Baterai -->
+      <div class="flex items-center gap-2">
+        <a href="/" onclick="haptic(15)" class="tactile-btn w-8 h-8 rounded-lg text-remote-muted hover:text-white" title="Scan QR Code / Ganti Host">
+          <i data-lucide="qr-code" class="w-4 h-4"></i>
+        </a>
+
+        <!-- LED Status + Info -->
+        <div class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[#181818] border border-[#262626]">
+          <span id="led-indicator" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+          <span id="led-label" class="text-[10px] font-mono text-remote-muted font-medium">Connecting</span>
+        </div>
+
+        <!-- Baterai Laptop -->
+        <div id="bat-box" class="hidden items-center gap-1 text-[11px] font-mono text-emerald-400 bg-[#181818] border border-[#262626] px-2 py-1 rounded-full">
+          <i data-lucide="battery-charging" class="w-3.5 h-3.5"></i>
+          <span id="bat-text">--%</span>
+        </div>
+      </div>
+
+      <!-- Tengah: Tombol Kapsul Screen Off -->
+      <button onclick="screenOff()" class="tactile-btn h-8 px-3 rounded-full text-xs font-medium text-amber-400 gap-1.5 border border-amber-500/20" title="Matikan Lampu Layar Laptop">
+        <i data-lucide="monitor-off" class="w-3.5 h-3.5 text-amber-400"></i>
+        <span class="text-[11px] tracking-tight">Screen Off</span>
+      </button>
+
+      <!-- Kanan: Tombol Bulat Power Merah -->
+      <button onclick="openPowerModal()" class="tactile-btn tactile-btn-danger w-8 h-8 rounded-full" title="Menu Daya & Sistem">
+        <i data-lucide="power" class="w-4 h-4"></i>
+      </button>
+    </header>
+
+    <!-- ----------------------------------------------------------------- -->
+    <!-- ROW 2: MAIN TOUCHPAD & NAVIGATION SURFACE (~40% Tinggi Layar) -->
+    <!-- ----------------------------------------------------------------- -->
+    <section class="flex-1 min-h-[190px] flex flex-col justify-between my-2 gap-2">
+      <!-- Container Trackpad & D-Pad (Bisa di-toggle) -->
+      <div class="relative flex-1 rounded-2xl overflow-hidden border border-[#2b2b2b] bg-[#161616] flex flex-col">
+
+        <!-- Tombol Toggle Mode D-Pad (Pojok Kanan Atas) -->
+        <div class="absolute top-2 right-2 z-20 flex items-center gap-1">
+          <button id="toggle-nav-mode" onclick="toggleNavMode()" class="tactile-btn px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold gap-1 text-remote-muted bg-[#202020]/90 backdrop-blur-sm border border-white/10" title="Ganti Mode Touchpad / D-Pad Arah">
+            <i id="mode-icon" data-lucide="gamepad-2" class="w-3 h-3 text-remote-accent"></i>
+            <span id="mode-text">D-PAD</span>
+          </button>
+        </div>
+
+        <!-- 1. MODE TOUCHPAD (Default) -->
+        <div id="touchpad-container" class="w-full h-full relative flex flex-col">
+          <div id="touchpad-area" class="w-full h-full trackpad-surface flex items-center justify-center cursor-crosshair">
+            <div class="pointer-events-none flex flex-col items-center justify-center opacity-30 gap-1">
+              <i data-lucide="mouse-pointer-2" class="w-6 h-6 text-white"></i>
+              <span class="text-[10px] tracking-wider font-mono text-white">TOUCHPAD / 2-FINGER SCROLL</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. MODE D-PAD (Tombol Arah Fisik) -->
+        <div id="dpad-container" class="hidden w-full h-full flex items-center justify-center bg-[#151515] p-3">
+          <div class="relative w-44 h-44 flex items-center justify-center">
+            <!-- D-Pad Base Circle -->
+            <div class="absolute inset-0 rounded-full bg-[#1c1c1c] border border-[#2a2a2a] shadow-inner"></div>
+
+            <!-- Up Arrow -->
+            <button onclick="pressKey('up')" class="tactile-btn absolute top-1.5 w-12 h-12 rounded-xl text-remote-text" title="Panah Atas">
+              <i data-lucide="chevron-up" class="w-6 h-6"></i>
+            </button>
+
+            <!-- Down Arrow -->
+            <button onclick="pressKey('down')" class="tactile-btn absolute bottom-1.5 w-12 h-12 rounded-xl text-remote-text" title="Panah Bawah">
+              <i data-lucide="chevron-down" class="w-6 h-6"></i>
+            </button>
+
+            <!-- Left Arrow -->
+            <button onclick="pressKey('left')" class="tactile-btn absolute left-1.5 w-12 h-12 rounded-xl text-remote-text" title="Panah Kiri">
+              <i data-lucide="chevron-left" class="w-6 h-6"></i>
+            </button>
+
+            <!-- Right Arrow -->
+            <button onclick="pressKey('right')" class="tactile-btn absolute right-1.5 w-12 h-12 rounded-xl text-remote-text" title="Panah Kanan">
+              <i data-lucide="chevron-right" class="w-6 h-6"></i>
+            </button>
+
+            <!-- Center OK / Enter Button -->
+            <button onclick="pressKey('enter')" class="tactile-btn tactile-btn-accent z-10 w-13 h-13 rounded-full text-xs font-bold uppercase tracking-wider" title="Enter / OK">
+              OK
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Tombol Fisik: Klik Kiri & Klik Kanan Melebar -->
+      <div class="grid grid-cols-2 gap-2 h-11 shrink-0">
+        <button onclick="mouseClick('left')" class="tactile-btn h-full rounded-xl text-xs font-semibold text-remote-text gap-1.5">
+          <i data-lucide="mouse" class="w-4 h-4 text-remote-accent"></i>
+          <span>KLIK KIRI</span>
+        </button>
+        <button onclick="mouseClick('right')" class="tactile-btn h-full rounded-xl text-xs font-semibold text-remote-muted gap-1.5">
+          <span>KLIK KANAN</span>
+          <i data-lucide="corner-down-right" class="w-3.5 h-3.5 text-remote-dim"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------------------------------- -->
+    <!-- ROW 3: WINDOW QUICK-KEYS (4 Pill Buttons Sejajar) -->
+    <!-- ----------------------------------------------------------------- -->
+    <div class="grid grid-cols-4 gap-1.5 shrink-0 my-1">
+      <button onclick="sendShortcut('alt_tab')" class="tactile-btn h-8 rounded-lg text-[11px] font-mono text-remote-text font-medium" title="Ganti Aplikasi Aktif">
+        Alt+Tab
+      </button>
+      <button onclick="sendShortcut('f11')" class="tactile-btn h-8 rounded-lg text-[11px] font-mono text-remote-text font-medium" title="Layar Penuh">
+        F11
+      </button>
+      <button onclick="sendShortcut('ctrl_w')" class="tactile-btn h-8 rounded-lg text-[11px] font-mono text-red-400 font-medium" title="Tutup Tab Chrome">
+        Ctrl+W
+      </button>
+      <button onclick="sendShortcut('win_d')" class="tactile-btn h-8 rounded-lg text-[11px] font-mono text-remote-accent font-medium" title="Tampilkan Desktop">
+        Win+D
+      </button>
+    </div>
+
+    <!-- ----------------------------------------------------------------- -->
+    <!-- ROW 4: TACTILE ROCKER & MEDIA DECK (Bagian Utama Remot) -->
+    <!-- ----------------------------------------------------------------- -->
+    <section class="shrink-0 my-1.5">
+      <div class="grid grid-cols-4 gap-2.5 items-center h-32">
+
+        <!-- Kolom Kiri: Vertical Volume Rocker (1 Kolom) -->
+        <div class="h-full bg-[#171717] rounded-2xl border border-[#2a2a2a] p-1 flex flex-col justify-between items-center shadow-inner">
+          <!-- Vol + -->
+          <button onclick="stepVolume(10)" class="tactile-btn w-full h-9 rounded-xl text-remote-text" title="Volume +10%">
+            <i data-lucide="plus" class="w-4 h-4 text-emerald-400"></i>
+          </button>
+          
+          <!-- Mute + Level -->
+          <button id="btn-vol-mute" onclick="toggleMute()" class="tactile-btn w-full flex-1 my-1 rounded-xl flex-col gap-0.5" title="Mute / Unmute">
+            <i id="vol-mute-icon" data-lucide="volume-2" class="w-4 h-4 text-remote-text"></i>
+            <span id="vol-level-text" class="text-[10px] font-mono font-bold text-remote-accent">50%</span>
+          </button>
+
+          <!-- Vol - -->
+          <button onclick="stepVolume(-10)" class="tactile-btn w-full h-9 rounded-xl text-remote-text" title="Volume -10%">
+            <i data-lucide="minus" class="w-4 h-4 text-remote-muted"></i>
+          </button>
+        </div>
+
+        <!-- Kolom Tengah: Media Circle & Chrome (2 Kolom) -->
+        <div class="col-span-2 h-full flex flex-col justify-between gap-1.5">
+          <!-- Media Control Trio -->
+          <div class="flex-1 bg-[#171717] rounded-2xl border border-[#2a2a2a] p-1.5 flex items-center justify-around shadow-inner">
+            <!-- Prev -->
+            <button onclick="mediaControl('prev')" class="tactile-btn w-10 h-10 rounded-full text-remote-text" title="Track Sebelumnya">
+              <i data-lucide="skip-back" class="w-4 h-4"></i>
+            </button>
+
+            <!-- Big Play/Pause -->
+            <button onclick="mediaControl('playpause')" class="tactile-btn tactile-btn-accent w-13 h-13 rounded-full shadow-lg" title="Play / Pause">
+              <i data-lucide="play" class="w-6 h-6 fill-current"></i>
+            </button>
+
+            <!-- Next -->
+            <button onclick="mediaControl('next')" class="tactile-btn w-10 h-10 rounded-full text-remote-text" title="Track Selanjutnya">
+              <i data-lucide="skip-forward" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Tombol Cepat Buka Chrome -->
+          <button onclick="openChrome()" class="tactile-btn h-9 rounded-xl text-xs font-medium text-remote-text gap-2" title="Buka Browser Chrome di Laptop">
+            <i data-lucide="chrome" class="w-4 h-4 text-amber-400"></i>
+            <span>Buka Chrome</span>
+          </button>
+        </div>
+
+        <!-- Kolom Kanan: Vertical Brightness Rocker (1 Kolom) -->
+        <div class="h-full bg-[#171717] rounded-2xl border border-[#2a2a2a] p-1 flex flex-col justify-between items-center shadow-inner">
+          <!-- Brightness + -->
+          <button onclick="stepBrightness(10)" class="tactile-btn w-full h-9 rounded-xl text-remote-text" title="Kecerahan +10%">
+            <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+          </button>
+
+          <!-- Brightness Icon & Value -->
+          <div class="w-full flex-1 my-1 flex flex-col items-center justify-center gap-0.5">
+            <i data-lucide="sun-medium" class="w-3.5 h-3.5 text-remote-dim"></i>
+            <span id="bright-level-text" class="text-[10px] font-mono font-bold text-amber-400">70%</span>
+          </div>
+
+          <!-- Brightness - -->
+          <button onclick="stepBrightness(-10)" class="tactile-btn w-full h-9 rounded-xl text-remote-text" title="Kecerahan -10%">
+            <i data-lucide="moon" class="w-4 h-4 text-remote-muted"></i>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ----------------------------------------------------------------- -->
+    <!-- ROW 5: BOTTOM ACTION DOCK (5 Tombol Pembuka Modal Bottom-Sheet) -->
+    <!-- ----------------------------------------------------------------- -->
+    <footer class="shrink-0 h-14 bg-[#161616] rounded-2xl border border-[#262626] p-1.5 flex items-center justify-between shadow-2xl">
+      <!-- 1. Play / Cari -->
+      <button onclick="openSheet('sheet-search')" class="tactile-btn flex-1 h-full mx-0.5 rounded-xl flex-col gap-0.5 text-remote-muted hover:text-white" title="YouTube & Web Search">
+        <i data-lucide="search" class="w-4 h-4 text-remote-accent"></i>
+        <span class="text-[9px] font-medium tracking-tight">Cari</span>
+      </button>
+
+      <!-- 2. Keyboard -->
+      <button onclick="openSheet('sheet-keyboard')" class="tactile-btn flex-1 h-full mx-0.5 rounded-xl flex-col gap-0.5 text-remote-muted hover:text-white" title="Remote Keyboard & Clipboard">
+        <i data-lucide="keyboard" class="w-4 h-4 text-sky-400"></i>
+        <span class="text-[9px] font-medium tracking-tight">Ketik</span>
+      </button>
+
+      <!-- 3. Peek Screen -->
+      <button onclick="openSheet('sheet-peek')" class="tactile-btn flex-1 h-full mx-0.5 rounded-xl flex-col gap-0.5 text-remote-muted hover:text-white" title="Intip Layar Laptop (Screenshot)">
+        <i data-lucide="eye" class="w-4 h-4 text-emerald-400"></i>
+        <span class="text-[9px] font-medium tracking-tight">Peek</span>
+      </button>
+
+      <!-- 4. File Drop -->
+      <button onclick="openSheet('sheet-drop')" class="tactile-btn flex-1 h-full mx-0.5 rounded-xl flex-col gap-0.5 text-remote-muted hover:text-white" title="Kirim Berkas ke Laptop">
+        <i data-lucide="folder-up" class="w-4 h-4 text-purple-400"></i>
+        <span class="text-[9px] font-medium tracking-tight">Drop</span>
+      </button>
+
+      <!-- 5. Pesan / TTS -->
+      <button onclick="openSheet('sheet-tts')" class="tactile-btn flex-1 h-full mx-0.5 rounded-xl flex-col gap-0.5 text-remote-muted hover:text-white" title="Kirim Notifikasi / Suara TTS">
+        <i data-lucide="volume-1" class="w-4 h-4 text-amber-400"></i>
+        <span class="text-[9px] font-medium tracking-tight">Pesan</span>
+      </button>
+    </footer>
+
+  </div>
+
+
+  <!-- =================================================================== -->
+  <!-- FLOATING TOAST HUD -->
+  <!-- =================================================================== -->
+  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-1.5 w-11/12 max-w-xs pointer-events-none"></div>
+
+
+  <!-- =================================================================== -->
+  <!-- MODAL / BOTTOM SHEET 1: PLAY & SMART SEARCH (YouTube / Google / Wiki)-->
+  <!-- =================================================================== -->
+  <div id="sheet-search" class="sheet-modal fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex flex-col justify-end sm:justify-center items-center p-0 sm:p-4">
+    <div class="w-full max-w-sm bg-[#181818] border-t sm:border border-[#333333] rounded-t-3xl sm:rounded-2xl p-4 shadow-2xl space-y-3.5 animate-sheet-up max-h-[85dvh] overflow-y-auto">
+      
+      <!-- Sheet Header -->
+      <div class="flex items-center justify-between border-b border-[#2a2a2a] pb-2">
+        <div class="flex items-center gap-2">
+          <i data-lucide="search" class="w-4 h-4 text-remote-accent"></i>
+          <h3 class="text-sm font-bold text-white">Putar & Cari Pintar</h3>
+        </div>
+        <button onclick="closeSheet('sheet-search')" class="tactile-btn w-7 h-7 rounded-full text-remote-muted">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Smart Input Box -->
+      <div class="space-y-1.5">
+        <label class="text-[11px] text-remote-muted font-medium">Kueri / Judul Lagu / Pencarian:</label>
+        <div class="relative">
+          <input id="smart-query-input" type="text" placeholder="Ketik apa saja..." class="w-full bg-[#121212] border border-[#333333] rounded-xl px-3 py-2.5 text-xs text-white placeholder-remote-dim outline-none focus:border-remote-accent pr-8 font-medium">
+          <button onclick="document.getElementById('smart-query-input').value=''" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-remote-dim hover:text-white">
+            <i data-lucide="x-circle" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Action Buttons Trio -->
+      <div class="grid grid-cols-3 gap-2">
+        <button onclick="actionPlayYouTube()" class="tactile-btn tactile-btn-accent h-10 rounded-xl text-xs font-semibold flex-col gap-0.5">
+          <i data-lucide="youtube" class="w-4 h-4"></i>
+          <span class="text-[10px]">YouTube</span>
+        </button>
+        <button onclick="actionSearchGoogle()" class="tactile-btn h-10 rounded-xl text-xs font-semibold flex-col gap-0.5 text-white">
+          <i data-lucide="globe" class="w-4 h-4 text-sky-400"></i>
+          <span class="text-[10px]">Google</span>
+        </button>
+        <button onclick="actionSearchWiki()" class="tactile-btn h-10 rounded-xl text-xs font-semibold flex-col gap-0.5 text-white">
+          <i data-lucide="book-open" class="w-4 h-4 text-amber-400"></i>
+          <span class="text-[10px]">Wikipedia</span>
+        </button>
+      </div>
+
+      <!-- Wiki Result Card (Muncul jika ada hasil ringkasan) -->
+      <div id="wiki-card" class="hidden p-3 rounded-xl bg-[#121212] border border-[#2a2a2a] space-y-2 text-xs">
+        <div class="flex items-center justify-between">
+          <span id="wiki-card-title" class="font-bold text-remote-accent truncate">Judul Artikel</span>
+          <span id="wiki-card-lang" class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-mono">ID</span>
+        </div>
+        <p id="wiki-card-extract" class="text-[11px] text-remote-muted leading-relaxed line-clamp-4">Isi ringkasan...</p>
+        <button id="wiki-card-open" class="tactile-btn w-full h-8 rounded-lg text-[11px] font-medium text-white gap-1.5">
+          <i data-lucide="external-link" class="w-3.5 h-3.5 text-remote-accent"></i>
+          <span>Buka Lengkap di Laptop</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- =================================================================== -->
+  <!-- MODAL / BOTTOM SHEET 2: REMOTE KEYBOARD & CLIPBOARD -->
+  <!-- =================================================================== -->
+  <div id="sheet-keyboard" class="sheet-modal fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex flex-col justify-end sm:justify-center items-center p-0 sm:p-4">
+    <div class="w-full max-w-sm bg-[#181818] border-t sm:border border-[#333333] rounded-t-3xl sm:rounded-2xl p-4 shadow-2xl space-y-3.5 animate-sheet-up max-h-[85dvh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between border-b border-[#2a2a2a] pb-2">
+        <div class="flex items-center gap-2">
+          <i data-lucide="keyboard" class="w-4 h-4 text-sky-400"></i>
+          <h3 class="text-sm font-bold text-white">Remote Keyboard & Klip</h3>
+        </div>
+        <button onclick="closeSheet('sheet-keyboard')" class="tactile-btn w-7 h-7 rounded-full text-remote-muted">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Input Text Area -->
+      <div class="space-y-1.5">
+        <textarea id="kb-input" rows="2" placeholder="Ketik teks untuk dikirim langsung ke kursor laptop..." class="w-full bg-[#121212] border border-[#333333] rounded-xl p-2.5 text-xs text-white placeholder-remote-dim outline-none focus:border-sky-400 resize-none font-medium"></textarea>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="typeToLaptop()" class="tactile-btn tactile-btn-accent h-10 rounded-xl text-xs font-semibold gap-1.5">
+          <i data-lucide="send" class="w-3.5 h-3.5"></i>
+          <span>Ketik ke Laptop</span>
+        </button>
+        <button onclick="sendToClipboard()" class="tactile-btn h-10 rounded-xl text-xs font-semibold gap-1.5 text-sky-300">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+          <span>Copy ke Laptop</span>
+        </button>
+      </div>
+
+      <!-- Tactile Hardware Keys Row -->
+      <div class="grid grid-cols-4 gap-1.5">
+        <button onclick="pressKey('enter')" class="tactile-btn h-8 rounded-lg text-[11px] font-mono text-emerald-400">Enter</button>
+        <button onclick="pressKey('backspace')" class="tactile-btn h-8 rounded-lg text-[11px] font-mono text-red-400">⌫ Back</button>
+        <button onclick="pressKey('space')" class="tactile-btn h-8 rounded-lg text-[11px] font-mono text-white">Space</button>
+        <button onclick="pressKey('escape')" class="tactile-btn h-8 rounded-lg text-[11px] font-mono text-amber-400">Esc</button>
+      </div>
+
+      <!-- Laptop Clipboard Getter -->
+      <div class="pt-2 border-t border-[#2a2a2a] space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] text-remote-muted">Sinkronisasi Clipboard Laptop:</span>
+          <button onclick="getLaptopClipboard()" class="tactile-btn px-2.5 py-1 rounded-lg text-[10px] text-sky-400 font-medium gap-1">
+            <i data-lucide="download" class="w-3 h-3"></i>
+            <span>Ambil Teks</span>
+          </button>
+        </div>
+        <div id="clip-box" class="hidden p-2.5 rounded-xl bg-[#121212] border border-[#2a2a2a] text-xs">
+          <p id="clip-text" class="text-white text-[11px] font-mono break-all line-clamp-3">(Kosong)</p>
+          <button onclick="copyToPhoneClipboard()" class="mt-2 tactile-btn w-full h-7 rounded-lg text-[10px] text-remote-muted hover:text-white gap-1">
+            <i data-lucide="clipboard-copy" class="w-3 h-3"></i>
+            <span>Salin ke Smartphone</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- =================================================================== -->
+  <!-- MODAL / BOTTOM SHEET 3: LIVE SCREEN PEEK (Screenshot) -->
+  <!-- =================================================================== -->
+  <div id="sheet-peek" class="sheet-modal fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex flex-col justify-end sm:justify-center items-center p-0 sm:p-4">
+    <div class="w-full max-w-sm bg-[#181818] border-t sm:border border-[#333333] rounded-t-3xl sm:rounded-2xl p-4 shadow-2xl space-y-3.5 animate-sheet-up max-h-[90dvh] flex flex-col">
+      
+      <div class="flex items-center justify-between border-b border-[#2a2a2a] pb-2 shrink-0">
+        <div class="flex items-center gap-2">
+          <i data-lucide="eye" class="w-4 h-4 text-emerald-400"></i>
+          <h3 class="text-sm font-bold text-white">Intip Layar Laptop</h3>
+        </div>
+        <button onclick="closeSheet('sheet-peek')" class="tactile-btn w-7 h-7 rounded-full text-remote-muted">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Preview Image Frame -->
+      <div class="flex-1 min-h-[190px] rounded-xl overflow-hidden border border-[#2a2a2a] bg-[#101010] flex items-center justify-center relative">
+        <img id="peek-img" src="" alt="Layar Laptop" class="w-full h-auto max-h-[50vh] object-contain rounded-lg hidden" />
+        <div id="peek-loader" class="flex flex-col items-center justify-center gap-2 text-remote-muted text-xs p-6 text-center">
+          <i data-lucide="loader-2" class="w-6 h-6 animate-spin text-emerald-400"></i>
+          <span>Mengambil tangkapan layar...</span>
+        </div>
+      </div>
+
+      <!-- Footer Info & Refresh Button -->
+      <div class="flex items-center justify-between shrink-0 pt-1">
+        <span id="peek-time" class="text-[10px] font-mono text-remote-muted">Diperbarui: -</span>
+        <button onclick="refreshScreenshot()" class="tactile-btn px-4 h-9 rounded-xl text-xs font-semibold text-emerald-400 gap-1.5">
+          <i id="peek-spin" data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          <span>Refresh Layar</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- =================================================================== -->
+  <!-- MODAL / BOTTOM SHEET 4: QUICK FILE DROP (Upload) -->
+  <!-- =================================================================== -->
+  <div id="sheet-drop" class="sheet-modal fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex flex-col justify-end sm:justify-center items-center p-0 sm:p-4">
+    <div class="w-full max-w-sm bg-[#181818] border-t sm:border border-[#333333] rounded-t-3xl sm:rounded-2xl p-4 shadow-2xl space-y-3.5 animate-sheet-up max-h-[85dvh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between border-b border-[#2a2a2a] pb-2">
+        <div class="flex items-center gap-2">
+          <i data-lucide="folder-up" class="w-4 h-4 text-purple-400"></i>
+          <h3 class="text-sm font-bold text-white">Quick File Drop</h3>
+        </div>
+        <button onclick="closeSheet('sheet-drop')" class="tactile-btn w-7 h-7 rounded-full text-remote-muted">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- File Picker Dropzone -->
+      <label for="file-drop-input" class="flex flex-col items-center justify-center p-4 border-2 border-dashed border-[#333333] hover:border-purple-400/50 rounded-2xl bg-[#121212] cursor-pointer transition-colors text-center gap-1.5">
+        <i data-lucide="upload-cloud" class="w-8 h-8 text-purple-400"></i>
+        <span class="text-xs font-medium text-white">Pilih Berkas dari HP</span>
+        <span class="text-[10px] text-remote-dim">Foto, Dokumen, Video, APK</span>
+        <input id="file-drop-input" type="file" multiple class="hidden" onchange="handleFileSelection(event)">
+      </label>
+
+      <!-- Selected Files Indicator -->
+      <div id="selected-files-box" class="hidden p-2.5 rounded-xl bg-[#121212] border border-[#2a2a2a] space-y-1.5 text-xs">
+        <div class="flex items-center justify-between text-remote-muted text-[11px]">
+          <span id="files-count-text">0 berkas terpilih</span>
+          <button onclick="clearSelectedFiles()" class="text-red-400 hover:underline">Batal</button>
+        </div>
+        <div id="files-list" class="max-h-24 overflow-y-auto space-y-1 font-mono text-[10px] text-white"></div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div id="upload-progress-box" class="hidden space-y-1">
+        <div class="flex justify-between text-[10px] font-mono text-purple-300">
+          <span>Mengunggah...</span>
+          <span id="upload-percent">0%</span>
+        </div>
+        <div class="w-full h-1.5 bg-[#222222] rounded-full overflow-hidden">
+          <div id="upload-bar" class="h-full bg-purple-500 w-0 transition-all duration-150"></div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button id="btn-upload-action" onclick="uploadFiles()" class="tactile-btn tactile-btn-accent h-10 rounded-xl text-xs font-semibold gap-1.5">
+          <i data-lucide="send" class="w-3.5 h-3.5"></i>
+          <span>Kirim ke Laptop</span>
+        </button>
+        <button onclick="openLaptopDropFolder()" class="tactile-btn h-10 rounded-xl text-xs font-semibold gap-1.5 text-purple-300">
+          <i data-lucide="folder" class="w-3.5 h-3.5"></i>
+          <span>Buka di Laptop</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- =================================================================== -->
+  <!-- MODAL / BOTTOM SHEET 5: POP-UP NOTIFICATION & TEXT-TO-SPEECH (TTS)-->
+  <!-- =================================================================== -->
+  <div id="sheet-tts" class="sheet-modal fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex flex-col justify-end sm:justify-center items-center p-0 sm:p-4">
+    <div class="w-full max-w-sm bg-[#181818] border-t sm:border border-[#333333] rounded-t-3xl sm:rounded-2xl p-4 shadow-2xl space-y-3.5 animate-sheet-up max-h-[85dvh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between border-b border-[#2a2a2a] pb-2">
+        <div class="flex items-center gap-2">
+          <i data-lucide="message-square" class="w-4 h-4 text-amber-400"></i>
+          <h3 class="text-sm font-bold text-white">Kirim Pesan & TTS</h3>
+        </div>
+        <button onclick="closeSheet('sheet-tts')" class="tactile-btn w-7 h-7 rounded-full text-remote-muted">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-[11px] text-remote-muted font-medium">Isi Pesan:</label>
+        <textarea id="tts-msg-input" rows="3" placeholder="Tulis pesan yang akan muncul di layar atau dibacakan speaker laptop..." class="w-full bg-[#121212] border border-[#333333] rounded-xl p-2.5 text-xs text-white placeholder-remote-dim outline-none focus:border-amber-400 resize-none font-medium"></textarea>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="sendPopupMessage()" class="tactile-btn h-10 rounded-xl text-xs font-semibold gap-1.5 text-white">
+          <i data-lucide="app-window" class="w-4 h-4 text-amber-400"></i>
+          <span>Pop-up Layar</span>
+        </button>
+        <button onclick="sendTTSMessage()" class="tactile-btn tactile-btn-accent h-10 rounded-xl text-xs font-semibold gap-1.5">
+          <i data-lucide="volume-2" class="w-4 h-4"></i>
+          <span>Suara TTS</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- =================================================================== -->
+  <!-- MODAL 6: POWER & SYSTEM CONTROLS (Lock, Sleep, Shutdown, Cancel) -->
+  <!-- =================================================================== -->
+  <div id="modal-power" class="sheet-modal fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-xs bg-[#181818] border border-[#333333] rounded-2xl p-4 shadow-2xl space-y-3 animate-sheet-up">
+      
+      <div class="flex items-center justify-between border-b border-[#2a2a2a] pb-2">
+        <div class="flex items-center gap-2">
+          <i data-lucide="power" class="w-4 h-4 text-red-500"></i>
+          <h3 class="text-sm font-bold text-white">Kontrol Daya Laptop</h3>
+        </div>
+        <button onclick="closePowerModal()" class="tactile-btn w-7 h-7 rounded-full text-remote-muted">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2 pt-1">
+        <!-- Lock Screen -->
+        <button onclick="executePower('lock')" class="tactile-btn w-full h-10 rounded-xl text-xs font-semibold text-white justify-between px-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="lock" class="w-4 h-4 text-amber-400"></i>
+            <span>Lock Screen</span>
+          </div>
+          <span class="text-[10px] text-remote-dim font-mono">Kunci</span>
+        </button>
+
+        <!-- Sleep -->
+        <button onclick="executePower('sleep')" class="tactile-btn w-full h-10 rounded-xl text-xs font-semibold text-white justify-between px-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="moon" class="w-4 h-4 text-sky-400"></i>
+            <span>Sleep Mode</span>
+          </div>
+          <span class="text-[10px] text-remote-dim font-mono">Hemat</span>
+        </button>
+
+        <!-- Shutdown 15 Detik -->
+        <button onclick="executePower('shutdown')" class="tactile-btn tactile-btn-danger w-full h-10 rounded-xl text-xs font-semibold justify-between px-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="power" class="w-4 h-4"></i>
+            <span>Shutdown (15 Detik)</span>
+          </div>
+          <span class="text-[10px] font-mono">Mati</span>
+        </button>
+
+        <!-- Cancel Shutdown -->
+        <button onclick="cancelShutdown()" class="tactile-btn w-full h-9 rounded-xl text-xs font-medium text-emerald-400 justify-center gap-1.5 border border-emerald-500/20">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+          <span>Batalkan Shutdown</span>
+        </button>
+      </div>
+
+      <button onclick="closePowerModal()" class="w-full text-center text-[11px] text-remote-dim hover:text-white pt-1">
+        Tutup
+      </button>
+
+    </div>
+  </div>
+
+
+  <!-- =================================================================== -->
+  <!-- SCRIPT LOGIKA APLIKASI LENGKAP -->
+  <!-- =================================================================== -->
+  <script>
+    // Global State
+    let socket = null;
+    let sensitivity = parseFloat(localStorage.getItem('pocketdesk_sens') || '1.4');
+    let selectedFiles = [];
+    let isMuted = false;
+    let currentVolume = 50;
+    let currentBrightness = 70;
+    let isDpadMode = false;
+
+    // Haptic Feedback
+    function haptic(ms = 25) {
+      if (navigator.vibrate) {
+        try {
+          navigator.vibrate(ms);
+        } catch (e) {}
+      }
+    }
+
+    // Toast HUD
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+
+      const icons = {
+        success: 'check-circle-2',
+        error: 'alert-circle',
+        info: 'info',
+        warning: 'alert-triangle'
+      };
+
+      const colors = {
+        success: 'border-emerald-500/40 text-emerald-400 bg-[#1a1a1a]',
+        error: 'border-red-500/40 text-red-400 bg-[#1a1a1a]',
+        info: 'border-remote-accent/40 text-white bg-[#1a1a1a]',
+        warning: 'border-amber-500/40 text-amber-400 bg-[#1a1a1a]'
+      };
+
+      toast.className = `p-2.5 rounded-xl border text-xs shadow-xl flex items-center gap-2 backdrop-blur-md transition-all duration-200 pointer-events-auto transform translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+      toast.innerHTML = `<i data-lucide="${icons[type] || 'info'}" class="w-3.5 h-3.5 shrink-0"></i><span class="truncate">${message}</span>`;
+
+      container.appendChild(toast);
+      if (window.lucide) lucide.createIcons();
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.remove(), 250);
+      }, 2400);
+    }
+
+    // Modal / Bottom Sheet Helpers
+    function openSheet(id) {
+      haptic(20);
+      document.querySelectorAll('.sheet-modal').forEach(m => m.classList.add('hidden'));
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.remove('hidden');
+        if (id === 'sheet-peek') refreshScreenshot();
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeSheet(id) {
+      haptic(15);
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    }
+
+    function openPowerModal() {
+      haptic(30);
+      document.getElementById('modal-power').classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closePowerModal() {
+      haptic(15);
+      document.getElementById('modal-power').classList.add('hidden');
+    }
+
+    // Close modal on click background backdrop
+    document.querySelectorAll('.sheet-modal').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.classList.add('hidden');
+        }
+      });
+    });
+
+    // Toggle Nav Mode: Touchpad vs D-Pad
+    function toggleNavMode() {
+      haptic(30);
+      isDpadMode = !isDpadMode;
+      const touchpadBox = document.getElementById('touchpad-container');
+      const dpadBox = document.getElementById('dpad-container');
+      const text = document.getElementById('mode-text');
+      const icon = document.getElementById('mode-icon');
+
+      if (isDpadMode) {
+        touchpadBox.classList.add('hidden');
+        dpadBox.classList.remove('hidden');
+        text.innerText = 'TOUCH';
+        icon.setAttribute('data-lucide', 'mouse-pointer-2');
+        showToast('Mode D-Pad Panah Aktif', 'info');
+      } else {
+        touchpadBox.classList.remove('hidden');
+        dpadBox.classList.add('hidden');
+        text.innerText = 'D-PAD';
+        icon.setAttribute('data-lucide', 'gamepad-2');
+        showToast('Mode Virtual Touchpad Aktif', 'info');
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // -------------------------------------------------------------------------
+    // API POST / GET DISPATCHERS
+    // -------------------------------------------------------------------------
+    async function apiPost(endpoint, body = {}) {
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        return await res.json();
+      } catch (err) {
+        showToast('Koneksi ke laptop terputus', 'error');
+        return { success: false, error: err.message };
+      }
+    }
+
+    async function apiGet(endpoint) {
+      try {
+        const res = await fetch(endpoint);
+        return await res.json();
+      } catch (err) {
+        return { success: false, error: err.message };
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // WEBSOCKET TOUCHPAD STREAM
+    // -------------------------------------------------------------------------
+    function initWebSocket() {
+      const loc = window.location;
+      const wsProtocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${loc.host}/ws/touchpad`;
+
+      socket = new WebSocket(wsUrl);
+
+      socket.onopen = () => {
+        updateLed(true);
+      };
+
+      socket.onclose = () => {
+        updateLed(false);
+        setTimeout(initWebSocket, 2000);
+      };
+
+      socket.onerror = () => {
+        updateLed(false);
+      };
+    }
+
+    function updateLed(connected) {
+      const led = document.getElementById('led-indicator');
+      const label = document.getElementById('led-label');
+      if (connected) {
+        led.className = 'w-2 h-2 rounded-full bg-emerald-400';
+        label.innerText = 'Online';
+        label.className = 'text-[10px] font-mono text-emerald-400 font-medium';
+      } else {
+        led.className = 'w-2 h-2 rounded-full bg-red-500 animate-pulse';
+        label.innerText = 'Offline';
+        label.className = 'text-[10px] font-mono text-red-400 font-medium';
+      }
+    }
+
+    // Setup Touchpad Touch Listeners
+    function setupTouchpad() {
+      const pad = document.getElementById('touchpad-area');
+      let lastX = 0, lastY = 0;
+      let startX = 0, startY = 0;
+      let startTime = 0;
+      let hasMoved = false;
+      let isTwoFinger = false;
+      let lastTwoFingerY = 0;
+
+      pad.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        haptic(15);
+
+        if (e.touches.length === 1) {
+          isTwoFinger = false;
+          const touch = e.touches[0];
+          lastX = touch.clientX;
+          lastY = touch.clientY;
+          startX = touch.clientX;
+          startY = touch.clientY;
+          startTime = Date.now();
+          hasMoved = false;
+        } else if (e.touches.length === 2) {
+          isTwoFinger = true;
+          lastTwoFingerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        }
+      }, { passive: false });
+
+      pad.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+
+        if (e.touches.length === 1 && !isTwoFinger) {
+          const touch = e.touches[0];
+          const dx = (touch.clientX - lastX) * sensitivity;
+          const dy = (touch.clientY - lastY) * sensitivity;
+
+          if (Math.hypot(touch.clientX - startX, touch.clientY - startY) > 5) {
+            hasMoved = true;
+          }
+
+          if (socket && socket.readyState === WebSocket.OPEN && (dx !== 0 || dy !== 0)) {
+            socket.send(JSON.stringify({ type: 'move', dx: Math.round(dx), dy: Math.round(dy) }));
+          }
+
+          lastX = touch.clientX;
+          lastY = touch.clientY;
+        } else if (e.touches.length === 2) {
+          const currentTwoFingerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          const deltaY = currentTwoFingerY - lastTwoFingerY;
+
+          if (socket && socket.readyState === WebSocket.OPEN && Math.abs(deltaY) > 2) {
+            const scrollUnits = deltaY > 0 ? 80 : -80;
+            socket.send(JSON.stringify({ type: 'scroll', dy: scrollUnits }));
+          }
+          lastTwoFingerY = currentTwoFingerY;
+        }
+      }, { passive: false });
+
+      pad.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        const duration = Date.now() - startTime;
+
+        if (!hasMoved && !isTwoFinger && duration < 250) {
+          haptic(30);
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: 'click', button: 'left' }));
+          }
+        }
+      }, { passive: false });
+    }
+
+    // -------------------------------------------------------------------------
+    // TELEMETRY & STATUS POLLER
+    // -------------------------------------------------------------------------
+    async function loadSystemStatus() {
+      const data = await apiGet('/api/status');
+      if (data && data.status === 'online') {
+        currentVolume = data.volume;
+        currentBrightness = data.brightness;
+        isMuted = data.mute;
+
+        // Update Volume UI
+        const volText = document.getElementById('vol-level-text');
+        const muteIcon = document.getElementById('vol-mute-icon');
+        if (volText) volText.innerText = `${currentVolume}%`;
+        if (muteIcon) {
+          if (isMuted) {
+            muteIcon.setAttribute('data-lucide', 'volume-x');
+            muteIcon.className = 'w-4 h-4 text-red-500';
+          } else {
+            muteIcon.setAttribute('data-lucide', 'volume-2');
+            muteIcon.className = 'w-4 h-4 text-remote-text';
+          }
+        }
+
+        // Update Brightness UI
+        const brightText = document.getElementById('bright-level-text');
+        if (brightText) brightText.innerText = `${currentBrightness}%`;
+
+        // Update Battery
+        const batBox = document.getElementById('bat-box');
+        const batText = document.getElementById('bat-text');
+        if (data.battery && batBox && batText) {
+          batBox.classList.remove('hidden');
+          batBox.classList.add('flex');
+          batText.innerText = `${data.battery.percent}%${data.battery.power_plugged ? '⚡' : ''}`;
+        }
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // BUTTON ACTIONS
+    // -------------------------------------------------------------------------
+
+    // Screen Off
+    async function screenOff() {
+      haptic(35);
+      const res = await apiPost('/api/screen-off');
+      if (res.success) {
+        showToast('Layar laptop dimatikan!', 'success');
+      }
+    }
+
+    // Mouse Clicks
+    async function mouseClick(button) {
+      haptic(25);
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'click', button }));
+      } else {
+        await apiPost('/api/mouse/click', { button });
+      }
+    }
+
+    // Keyboard Key
+    async function pressKey(key) {
+      haptic(20);
+      await apiPost('/api/keyboard/key', { key });
+    }
+
+    // Windows Shortcuts
+    async function sendShortcut(shortcut) {
+      haptic(25);
+      const res = await apiPost('/api/shortcut', { shortcut });
+      if (res.success) {
+        showToast(`Shortcut: ${shortcut.replace('_', ' ').toUpperCase()}`, 'info');
+      }
+    }
+
+    // Volume Rocker
+    async function stepVolume(delta) {
+      haptic(20);
+      const res = await apiPost('/api/volume/step', { delta });
+      if (res.success) {
+        currentVolume = res.volume;
+        document.getElementById('vol-level-text').innerText = `${currentVolume}%`;
+      }
+    }
+
+    async function toggleMute() {
+      haptic(25);
+      const res = await apiPost('/api/volume/mute', {});
+      if (res.success) {
+        isMuted = res.mute;
+        const muteIcon = document.getElementById('vol-mute-icon');
+        if (isMuted) {
+          muteIcon.setAttribute('data-lucide', 'volume-x');
+          muteIcon.className = 'w-4 h-4 text-red-500';
+          showToast('Audio di-Mute', 'warning');
+        } else {
+          muteIcon.setAttribute('data-lucide', 'volume-2');
+          muteIcon.className = 'w-4 h-4 text-remote-text';
+          showToast('Audio Aktif', 'info');
+        }
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+
+    // Brightness Rocker
+    async function stepBrightness(delta) {
+      haptic(20);
+      const newBright = Math.max(0, Math.min(100, currentBrightness + delta));
+      const res = await apiPost('/api/brightness', { brightness: newBright });
+      if (res.success) {
+        currentBrightness = newBright;
+        document.getElementById('bright-level-text').innerText = `${currentBrightness}%`;
+      }
+    }
+
+    // Media Controls
+    async function mediaControl(action) {
+      haptic(30);
+      await apiPost(`/api/media/${action}`);
+    }
+
+    // Open Chrome
+    async function openChrome() {
+      haptic(25);
+      const res = await apiPost('/api/browser/open');
+      if (res.success) showToast('Chrome dibuka di laptop', 'success');
+    }
+
+    // Smart Search Sheet Actions
+    async function actionPlayYouTube() {
+      haptic(30);
+      const query = document.getElementById('smart-query-input').value.trim();
+      if (!query) {
+        showToast('Masukkan judul lagu atau pencarian', 'warning');
+        return;
+      }
+      showToast(`Mencari di YouTube: "${query}"...`, 'info');
+      const res = await apiPost('/api/youtube/play', { query });
+      if (res.success) {
+        showToast(`Memutar di YouTube: ${query}`, 'success');
+        closeSheet('sheet-search');
+      }
+    }
+
+    async function actionSearchGoogle() {
+      haptic(25);
+      const query = document.getElementById('smart-query-input').value.trim();
+      if (!query) {
+        showToast('Masukkan kueri pencarian', 'warning');
+        return;
+      }
+      const res = await apiPost('/api/browser/search', { query });
+      if (res.success) {
+        showToast(`Google Search dibuka: ${query}`, 'success');
+        closeSheet('sheet-search');
+      }
+    }
+
+    async function actionSearchWiki() {
+      haptic(25);
+      const query = document.getElementById('smart-query-input').value.trim();
+      if (!query) {
+        showToast('Masukkan topik ringkasan', 'warning');
+        return;
+      }
+      showToast('Mengambil ringkasan Wikipedia...', 'info');
+      const res = await apiPost('/api/wiki/summary', { query });
+      const card = document.getElementById('wiki-card');
+
+      if (res.success) {
+        document.getElementById('wiki-card-title').innerText = res.title;
+        document.getElementById('wiki-card-lang').innerText = res.lang;
+        document.getElementById('wiki-card-extract').innerText = res.extract;
+
+        const openBtn = document.getElementById('wiki-card-open');
+        openBtn.onclick = () => {
+          haptic(25);
+          apiPost('/api/browser/search', { query: res.title });
+          showToast(`Membuka artikel: ${res.title}`, 'success');
+          closeSheet('sheet-search');
+        };
+
+        card.classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+      } else {
+        card.classList.add('hidden');
+        showToast(res.message || 'Ringkasan tidak ditemukan', 'warning');
+      }
+    }
+
+    // Keyboard & Clipboard Actions
+    async function typeToLaptop() {
+      haptic(25);
+      const input = document.getElementById('kb-input');
+      const text = input.value;
+      if (!text) return;
+      const res = await apiPost('/api/keyboard/type', { text });
+      if (res.success) {
+        showToast('Teks diketik ke laptop', 'success');
+        input.value = '';
+      }
+    }
+
+    async function sendToClipboard() {
+      haptic(25);
+      const input = document.getElementById('kb-input');
+      const text = input.value;
+      if (!text) return;
+      const res = await apiPost('/api/clipboard/send', { text });
+      if (res.success) {
+        showToast('Tersalin ke Clipboard Laptop', 'success');
+      }
+    }
+
+    async function getLaptopClipboard() {
+      haptic(20);
+      const res = await apiGet('/api/clipboard/get');
+      const box = document.getElementById('clip-box');
+      const text = document.getElementById('clip-text');
+      if (res.success && res.text) {
+        text.innerText = res.text;
+        box.classList.remove('hidden');
+        showToast('Clipboard laptop diterima', 'success');
+      } else {
+        text.innerText = '(Clipboard laptop kosong)';
+        box.classList.remove('hidden');
+      }
+    }
+
+    function copyToPhoneClipboard() {
+      haptic(20);
+      const text = document.getElementById('clip-text').innerText;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text);
+        showToast('Tersalin ke HP!', 'success');
+      }
+    }
+
+    // Screen Peek
+    async function refreshScreenshot() {
+      haptic(25);
+      const spin = document.getElementById('peek-spin');
+      if (spin) spin.classList.add('animate-spin');
+
+      const img = document.getElementById('peek-img');
+      const loader = document.getElementById('peek-loader');
+      const timestamp = new Date().toLocaleTimeString();
+
+      const newSrc = `/api/screen/peek?t=${Date.now()}`;
+      const tempImg = new Image();
+      tempImg.onload = () => {
+        img.src = newSrc;
+        img.classList.remove('hidden');
+        loader.classList.add('hidden');
+        document.getElementById('peek-time').innerText = `Diperbarui: ${timestamp}`;
+        if (spin) spin.classList.remove('animate-spin');
+      };
+      tempImg.onerror = () => {
+        if (spin) spin.classList.remove('animate-spin');
+        showToast('Gagal memuat screenshot', 'error');
+      };
+      tempImg.src = newSrc;
+    }
+
+    // File Drop Upload
+    function handleFileSelection(event) {
+      selectedFiles = Array.from(event.target.files);
+      const box = document.getElementById('selected-files-box');
+      const count = document.getElementById('files-count-text');
+      const list = document.getElementById('files-list');
+
+      if (selectedFiles.length === 0) {
+        box.classList.add('hidden');
+        return;
+      }
+
+      box.classList.remove('hidden');
+      count.innerText = `${selectedFiles.length} berkas dipilih`;
+      list.innerHTML = selectedFiles.map(f => `
+        <div class="flex justify-between items-center py-0.5 border-b border-[#252525]">
+          <span class="truncate pr-2">${f.name}</span>
+          <span class="text-remote-dim shrink-0">${(f.size / (1024 * 1024)).toFixed(2)} MB</span>
+        </div>
+      `).join('');
+    }
+
+    function clearSelectedFiles() {
+      selectedFiles = [];
+      document.getElementById('file-drop-input').value = '';
+      document.getElementById('selected-files-box').classList.add('hidden');
+    }
+
+    async function uploadFiles() {
+      if (selectedFiles.length === 0) {
+        showToast('Pilih berkas terlebih dahulu', 'warning');
+        return;
+      }
+      haptic(25);
+
+      const progressBox = document.getElementById('upload-progress-box');
+      const progressBar = document.getElementById('upload-bar');
+      const percentText = document.getElementById('upload-percent');
+      const btn = document.getElementById('btn-upload-action');
+
+      progressBox.classList.remove('hidden');
+      btn.disabled = true;
+
+      const formData = new FormData();
+      selectedFiles.forEach(f => formData.append('files', f));
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/upload', true);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          progressBar.style.width = `${percent}%`;
+          percentText.innerText = `${percent}%`;
+        }
+      };
+
+      xhr.onload = () => {
+        btn.disabled = false;
+        progressBox.classList.add('hidden');
+        if (xhr.status === 200) {
+          showToast(`${selectedFiles.length} berkas tersimpan di laptop!`, 'success');
+          clearSelectedFiles();
+          closeSheet('sheet-drop');
+        } else {
+          showToast('Gagal mengunggah berkas', 'error');
+        }
+      };
+
+      xhr.onerror = () => {
+        btn.disabled = false;
+        progressBox.classList.add('hidden');
+        showToast('Kesalahan jaringan saat mengunggah', 'error');
+      };
+
+      xhr.send(formData);
+    }
+
+    async function openLaptopDropFolder() {
+      haptic(25);
+      const res = await apiPost('/api/files/open-folder');
+      if (res.success) showToast('Folder dibuka di laptop', 'info');
+    }
+
+    // Notifications & TTS
+    async function sendPopupMessage() {
+      haptic(25);
+      const input = document.getElementById('tts-msg-input');
+      const message = input.value.trim();
+      if (!message) return;
+      const res = await apiPost('/api/notify/popup', { message });
+      if (res.success) {
+        showToast('Pop-up ditampilkan di laptop', 'success');
+        input.value = '';
+        closeSheet('sheet-tts');
+      }
+    }
+
+    async function sendTTSMessage() {
+      haptic(25);
+      const input = document.getElementById('tts-msg-input');
+      const message = input.value.trim();
+      if (!message) return;
+      const res = await apiPost('/api/notify/tts', { message });
+      if (res.success) {
+        showToast('Laptop sedang membacakan pesan...', 'info');
+        input.value = '';
+        closeSheet('sheet-tts');
+      }
+    }
+
+    // Power Actions
+    async function executePower(action) {
+      haptic(50);
+      closePowerModal();
+
+      if (action === 'lock') {
+        await apiPost('/api/power/lock');
+        showToast('Layar laptop dikunci', 'info');
+      } else if (action === 'sleep') {
+        await apiPost('/api/power/sleep');
+        showToast('Laptop masuk mode Sleep', 'warning');
+      } else if (action === 'shutdown') {
+        await apiPost('/api/power/shutdown');
+        showToast('Shutdown dimulai! Mati dalam 15 detik.', 'error');
+      }
+    }
+
+    async function cancelShutdown() {
+      haptic(25);
+      closePowerModal();
+      const res = await apiPost('/api/power/cancel-shutdown');
+      if (res.success) showToast('Perintah shutdown dibatalkan!', 'success');
+    }
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.lucide) lucide.createIcons();
+      initWebSocket();
+      setupTouchpad();
+      loadSystemStatus();
+
+      // Polling telemetry status every 3.5s
+      setInterval(loadSystemStatus, 3500);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PocketDesk Remote v2.0 // Hubungkan Perangkat</title>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            claude: {
+              bg: '#141413',        // Warm charcoal background
+              surface: '#1d1c1a',   // Card surface
+              surfaceHover: '#262421',
+              border: '#2e2c28',    // Warm border
+              borderLight: '#3d3b36',
+              text: '#f4f3ee',      // Creamy off-white
+              muted: '#9c9a92',     // Warm gray
+              dim: '#6f6e69',       // Deep muted
+              accent: '#d97757',    // Signature Claude Terracotta
+              accentHover: '#e28567',
+              accentBg: 'rgba(217, 119, 87, 0.12)',
+              accentBorder: 'rgba(217, 119, 87, 0.35)',
+              success: '#4eaa7b',
+              warning: '#d99b45',
+              danger: '#d85a56',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #141413;
+      color: #f4f3ee;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .c-card {
+      background-color: #1d1c1a;
+      border: 1px solid #2e2c28;
+      border-radius: 14px;
+      transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+    .c-card:hover {
+      border-color: #3d3b36;
+    }
+
+    .c-btn {
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      border-radius: 9px;
+      transition: all 0.12s ease;
+    }
+    .c-btn:active {
+      transform: scale(0.98);
+    }
+
+    .c-btn-primary {
+      background-color: #d97757;
+      border: 1px solid #e28567;
+      color: #ffffff;
+    }
+    .c-btn-primary:hover {
+      background-color: #e28567;
+    }
+
+    .c-btn-secondary {
+      background-color: #242320;
+      border: 1px solid #36342f;
+      color: #f4f3ee;
+    }
+    .c-btn-secondary:hover {
+      background-color: #2c2a26;
+      border-color: #45433d;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased selection:bg-claude-accent/30 selection:text-white">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-11/12 max-w-sm pointer-events-none"></div>
+
+  <!-- =================================================================== -->
+  <!-- NAVBAR -->
+  <!-- =================================================================== -->
+  <header class="border-b border-claude-border bg-[#141413]/90 sticky top-0 z-40 backdrop-blur-md">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <a href="/" class="flex items-center gap-2.5 group">
+        <div class="w-8 h-8 rounded-lg bg-claude-accent flex items-center justify-center shadow-sm group-hover:bg-claude-accentHover transition-colors">
+          <i data-lucide="laptop" class="w-4 h-4 text-white"></i>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="font-bold text-sm tracking-tight text-claude-text">PocketDesk Remote</span>
+          <span class="text-[10px] text-claude-accent font-semibold px-1.5 py-0.5 rounded bg-claude-accentBg border border-claude-accentBorder">v2.0</span>
+        </div>
+      </a>
+
+      <!-- Server Status & Direct Remote Link -->
+      <div class="flex items-center gap-2.5">
+        <div id="status-pill" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1d1c1a] border border-claude-border text-claude-muted text-xs">
+          <span class="w-2 h-2 rounded-full bg-claude-success"></span>
+          <span>Server Wi-Fi Aktif</span>
+        </div>
+
+        <a href="/remote" class="c-btn c-btn-primary px-3 py-1.5 text-xs flex items-center gap-1.5 font-medium shadow-sm">
+          <span>Buka Remote</span>
+          <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- =================================================================== -->
+  <!-- HERO SECTION -->
+  <!-- =================================================================== -->
+  <main class="max-w-4xl mx-auto px-4 py-8 sm:py-12 flex-1 w-full space-y-10">
+
+    <!-- Hero Title -->
+    <div class="text-center space-y-3 max-w-2xl mx-auto">
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-claude-accentBg border border-claude-accentBorder text-claude-accent text-xs font-semibold">
+        <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
+        <span>Koneksi Nirkabel Jaringan Lokal</span>
+      </div>
+      <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight text-claude-text">
+        Hubungkan Smartphone ke Laptop Anda
+      </h1>
+      <p class="text-xs sm:text-sm text-claude-muted leading-relaxed">
+        Pindai QR code di bawah menggunakan kamera smartphone, atau masukkan alamat IP secara manual untuk mengontrol kursor, keyboard, volume, dan transfer berkas langsung dari browser HP tanpa instal aplikasi.
+      </p>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- DUAL CONNECTION METHOD (QR CODE vs INPUT IP) -->
+    <!-- =================================================================== -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
+      
+      <!-- METODE 1: PINDAI QR CODE -->
+      <div class="c-card p-6 flex flex-col justify-between space-y-5">
+        <div class="space-y-1.5">
+          <div class="flex items-center gap-2 text-claude-accent">
+            <i data-lucide="qr-code" class="w-5 h-5"></i>
+            <h2 class="text-sm font-bold text-claude-text">Metode 1: Pindai (Scan) QR Code</h2>
+          </div>
+          <p class="text-xs text-claude-muted">
+            Paling praktis jika Anda sedang melihat layar ini di laptop atau PC.
+          </p>
+        </div>
+
+        <!-- QR Code Container -->
+        <div class="p-4 bg-white rounded-xl border border-claude-border shadow-md max-w-[240px] mx-auto text-center">
+          <img id="qr-img" src="/api/qrcode" alt="QR Code PocketDesk" class="w-48 h-48 mx-auto object-contain block" />
+        </div>
+
+        <div class="space-y-3 pt-1">
+          <!-- Direct URL box -->
+          <div class="space-y-1">
+            <span class="text-[11px] text-claude-muted">Tautan Remote Langsung:</span>
+            <div class="flex items-center gap-1.5 bg-[#141413] border border-claude-border rounded-lg p-1.5 pl-2.5">
+              <span id="remote-url-text" class="font-mono text-xs text-claude-accent truncate flex-1">Memuat URL...</span>
+              <button onclick="copyRemoteUrl()" class="c-btn c-btn-secondary px-2.5 py-1 text-[11px] flex items-center gap-1 shrink-0">
+                <i data-lucide="copy" class="w-3 h-3 text-claude-muted"></i>
+                <span id="copy-btn-label">Salin</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-2 p-2.5 rounded-lg bg-[#141413] border border-claude-border/80 text-[11px] text-claude-muted">
+            <i data-lucide="smartphone" class="w-4 h-4 text-claude-accent shrink-0 mt-0.5"></i>
+            <span>Buka kamera bawaan HP (iPhone atau Android), arahkan ke QR Code di atas, lalu ketuk tautan yang muncul.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- METODE 2: INPUT ALAMAT IP MANUAL -->
+      <div class="c-card p-6 flex flex-col justify-between space-y-5">
+        <div class="space-y-1.5">
+          <div class="flex items-center gap-2 text-claude-success">
+            <i data-lucide="network" class="w-5 h-5"></i>
+            <h2 class="text-sm font-bold text-claude-text">Metode 2: Masukkan IP Manual</h2>
+          </div>
+          <p class="text-xs text-claude-muted">
+            Gunakan jika Anda membuka halaman ini di browser smartphone atau browser lain.
+          </p>
+        </div>
+
+        <!-- Form Input IP -->
+        <div class="space-y-4 my-auto">
+          <div class="space-y-1.5">
+            <label class="text-xs font-medium text-claude-muted">Alamat IP Laptop Target:</label>
+            <div class="flex items-center bg-[#141413] border border-claude-border rounded-lg overflow-hidden focus-within:border-claude-accent transition-colors">
+              <span class="px-2.5 text-xs text-claude-dim font-mono bg-[#1a1917] border-r border-claude-border py-2.5 select-none">http://</span>
+              <input type="text" id="manual-ip-input" placeholder="192.168.1.4" 
+                     class="flex-1 bg-transparent px-3 py-2.5 text-xs text-claude-text font-mono placeholder-claude-dim focus:outline-none" />
+              <span class="px-2.5 text-xs text-claude-muted font-mono bg-[#1a1917] border-l border-claude-border py-2.5 select-none">:8000</span>
+            </div>
+          </div>
+
+          <!-- Quick IP Recommendation Badges -->
+          <div class="space-y-1.5">
+            <span class="text-[11px] text-claude-muted">Pilihan IP Cepat Terdeteksi:</span>
+            <div class="flex flex-wrap gap-1.5" id="quick-ip-container">
+              <button onclick="fillIp('127.0.0.1')" class="c-btn c-btn-secondary px-2.5 py-1 text-[11px] font-mono text-claude-muted hover:text-claude-text">
+                127.0.0.1 (Localhost)
+              </button>
+            </div>
+          </div>
+
+          <!-- Connect Button -->
+          <button onclick="connectManualIp()" class="c-btn c-btn-primary w-full py-2.5 text-xs font-semibold flex items-center justify-center gap-2 shadow-sm">
+            <span>Buka Remote Control</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- Open Direct on This Device -->
+        <div class="pt-2 border-t border-claude-border">
+          <a href="/remote" class="c-btn c-btn-secondary w-full py-2 text-xs flex items-center justify-center gap-1.5 text-claude-muted hover:text-claude-text">
+            <i data-lucide="monitor" class="w-3.5 h-3.5"></i>
+            <span>Buka Remote di Browser Ini (Self-Control)</span>
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- 3-STEP GUIDE -->
+    <!-- =================================================================== -->
+    <div class="c-card p-6 space-y-4">
+      <div class="flex items-center gap-2">
+        <i data-lucide="info" class="w-4 h-4 text-claude-accent"></i>
+        <h3 class="text-xs font-bold text-claude-text uppercase tracking-wider">3 Langkah Menghubungkan</h3>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+        <div class="p-3 bg-[#141413] border border-claude-border rounded-lg space-y-1.5">
+          <div class="w-6 h-6 rounded-full bg-claude-accentBg text-claude-accent flex items-center justify-center font-bold text-[11px]">1</div>
+          <h4 class="font-semibold text-claude-text">Satu Jaringan Wi-Fi</h4>
+          <p class="text-claude-muted leading-relaxed text-[11px]">Pastikan laptop dan smartphone Anda terhubung ke jaringan Wi-Fi lokal atau Hotspot HP yang sama.</p>
+        </div>
+
+        <div class="p-3 bg-[#141413] border border-claude-border rounded-lg space-y-1.5">
+          <div class="w-6 h-6 rounded-full bg-claude-accentBg text-claude-accent flex items-center justify-center font-bold text-[11px]">2</div>
+          <h4 class="font-semibold text-claude-text">Pindai atau Buka URL</h4>
+          <p class="text-claude-muted leading-relaxed text-[11px]">Arahkan kamera ke QR Code di atas atau ketik alamat IP laptop di browser Chrome/Safari smartphone Anda.</p>
+        </div>
+
+        <div class="p-3 bg-[#141413] border border-claude-border rounded-lg space-y-1.5">
+          <div class="w-6 h-6 rounded-full bg-claude-accentBg text-claude-accent flex items-center justify-center font-bold text-[11px]">3</div>
+          <h4 class="font-semibold text-claude-text">Kontrol Penuh Desktop</h4>
+          <p class="text-claude-muted leading-relaxed text-[11px]">Gunakan kursor touchpad, ketik teks, atur audio, putar musik YouTube, kirim file, dan kelola daya secara instan.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- HOST METRICS & TELEMETRY -->
+    <!-- =================================================================== -->
+    <div class="c-card p-5 space-y-3">
+      <div class="flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2">
+          <i data-lucide="cpu" class="w-4 h-4 text-claude-success"></i>
+          <span class="font-bold text-claude-text">Status Host Laptop Windows</span>
+        </div>
+        <span class="text-[11px] text-claude-muted font-mono" id="live-clock">--:--:--</span>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div class="p-2.5 bg-[#141413] border border-claude-border rounded-lg space-y-0.5">
+          <span class="text-[10px] text-claude-muted">Nama Komputer</span>
+          <p id="host-name" class="font-semibold text-claude-text truncate">Memuat...</p>
+        </div>
+        <div class="p-2.5 bg-[#141413] border border-claude-border rounded-lg space-y-0.5">
+          <span class="text-[10px] text-claude-muted">IP Wi-Fi Lokal</span>
+          <p id="host-ip" class="font-mono font-semibold text-claude-accent truncate">Memuat...</p>
+        </div>
+        <div class="p-2.5 bg-[#141413] border border-claude-border rounded-lg space-y-0.5">
+          <span class="text-[10px] text-claude-muted">Beban Sistem</span>
+          <p id="host-load" class="font-mono text-claude-muted">CPU: --% | RAM: --%</p>
+        </div>
+        <div class="p-2.5 bg-[#141413] border border-claude-border rounded-lg space-y-0.5">
+          <span class="text-[10px] text-claude-muted">Status Baterai</span>
+          <p id="host-battery" class="font-mono text-claude-success">--%</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- =================================================================== -->
+  <!-- FOOTER -->
+  <!-- =================================================================== -->
+  <footer class="border-t border-claude-border bg-[#141413] py-4 text-center text-xs text-claude-muted">
+    <div class="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>PocketDesk Remote v2.0 • Sistem Otomasi Desktop Lokal Windows</p>
+      <div class="flex items-center gap-3 text-[11px]">
+        <a href="/remote" class="text-claude-accent hover:underline">Buka Remote Control</a>
+        <span>•</span>
+        <span class="text-claude-dim">Tanpa Akses Internet Luar</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- =================================================================== -->
+  <!-- SCRIPTS -->
+  <!-- =================================================================== -->
+  <script>
+    let localIp = '127.0.0.1';
+    let port = 8000;
+    let fullRemoteUrl = '';
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const icons = {
+        success: 'check-circle',
+        error: 'alert-circle',
+        info: 'info'
+      };
+
+      toast.className = 'p-2.5 rounded-lg border text-xs shadow-lg flex items-center gap-2 bg-[#1d1c1a] border-claude-border text-claude-text backdrop-blur-md transition-all duration-200 pointer-events-auto transform translate-y-1 opacity-0';
+      toast.innerHTML = `<i data-lucide="${icons[type] || 'info'}" class="w-3.5 h-3.5 text-claude-accent shrink-0"></i><span>${message}</span>`;
+      
+      container.appendChild(toast);
+      if (window.lucide) lucide.createIcons();
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-1', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.remove(), 250);
+      }, 2500);
+    }
+
+    async function loadTelemetry() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        if (data && data.status === 'online') {
+          localIp = data.local_ip;
+          port = data.port || 8000;
+          fullRemoteUrl = `http://${localIp}:${port}/remote`;
+
+          // Update texts
+          document.getElementById('remote-url-text').innerText = fullRemoteUrl;
+          document.getElementById('host-name').innerText = data.hostname;
+          document.getElementById('host-ip').innerText = `${localIp}:${port}`;
+          document.getElementById('host-load').innerText = `CPU ${data.cpu_percent}% | RAM ${data.ram_percent}%`;
+
+          if (data.battery) {
+            document.getElementById('host-battery').innerText = `${data.battery.percent}% ${data.battery.power_plugged ? '⚡' : ''}`;
+          } else {
+            document.getElementById('host-battery').innerText = 'AC Power';
+          }
+
+          // Pre-fill manual input placeholder
+          document.getElementById('manual-ip-input').placeholder = localIp;
+
+          // Quick IP pill
+          const quickContainer = document.getElementById('quick-ip-container');
+          quickContainer.innerHTML = `
+            <button onclick="fillIp('${localIp}')" class="c-btn c-btn-secondary px-2.5 py-1 text-[11px] font-mono text-claude-accent hover:border-claude-accent">
+              ${localIp} (Wi-Fi Terdeteksi)
+            </button>
+            <button onclick="fillIp('127.0.0.1')" class="c-btn c-btn-secondary px-2.5 py-1 text-[11px] font-mono text-claude-muted hover:text-claude-text">
+              127.0.0.1 (Localhost)
+            </button>
+          `;
+        }
+      } catch (err) {
+        console.error('Telemetry error:', err);
+      }
+    }
+
+    function fillIp(ip) {
+      document.getElementById('manual-ip-input').value = ip;
+      showToast(`IP ${ip} dipilih`, 'info');
+    }
+
+    function copyRemoteUrl() {
+      if (navigator.clipboard && fullRemoteUrl) {
+        navigator.clipboard.writeText(fullRemoteUrl).then(() => {
+          showToast('Tautan remote berhasil disalin!', 'success');
+          const btnLabel = document.getElementById('copy-btn-label');
+          btnLabel.innerText = 'Tersalin!';
+          setTimeout(() => btnLabel.innerText = 'Salin', 2000);
+        });
+      } else {
+        showToast(fullRemoteUrl, 'info');
+      }
+    }
+
+    function connectManualIp() {
+      const input = document.getElementById('manual-ip-input');
+      let target = input.value.trim() || input.placeholder;
+      if (!target) {
+        showToast('Silakan masukkan alamat IP', 'error');
+        return;
+      }
+
+      // Clean protocol or port if typed
+      target = target.replace(/^https?:\/\//i, '');
+      let targetPort = '8000';
+      if (target.includes(':')) {
+        const parts = target.split(':');
+        target = parts[0];
+        targetPort = parts[1];
+      }
+
+      const destinationUrl = `http://${target}:${targetPort}/remote`;
+      showToast(`Membuka ${destinationUrl}...`, 'info');
+      window.location.href = destinationUrl;
+    }
+
+    // Enter key submits manual IP
+    document.getElementById('manual-ip-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        connectManualIp();
+      }
+    });
+
+    // Clock
+    setInterval(() => {
+      const clock = document.getElementById('live-clock');
+      if (clock) clock.innerText = new Date().toLocaleTimeString();
+    }, 1000);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.lucide) lucide.createIcons();
+      loadTelemetry();
+      setInterval(loadTelemetry, 5000);
+    });
+  </script>
+</body>
+</html>
