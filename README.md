@@ -8,7 +8,9 @@ Dirancang dengan antarmuka **Tactile Hardware Remote** modern (*Zero-Scroll 100d
 
 ## ✨ Fitur Utama
 
-- 🖱️ **Virtual Touchpad & D-Pad:** Area sentuh navigasi kursor halus, *tap* klik kiri, *2-finger scroll*, tombol fisik klik kiri & kanan, serta mode *D-Pad Directional Keys* (Atas, Bawah, Kiri, Kanan, OK).
+- 🖱️ **Virtual Touchpad & Live Peek (Livescreening):** 
+  - Mode **Touchpad**: Area sentuh navigasi kursor halus, *tap* klik kiri, *2-finger scroll*, tombol fisik klik kiri & kanan, dan strip scroll 1-jempol.
+  - Mode **Live Peek (Livescreening)**: Menampilkan streaming layar laptop secara real-time (*live stream video desktop*) langsung di deck kontrol utama. Dilengkapi fitur **Sentuh Langsung (Direct Tap Click)** untuk mengklik elemen laptop hanya dengan mengetuk layar HP, tombol jeda/lanjutkan, refresh instan, serta tombol **🎮 D-Pad Overlay** (tombol arah semi-transparan di atas layar live).
 - 🔊 **Vertical Volume Rocker:** Pengatur volume sistem Windows real-time (Vol +, Vol -, Mute, dan persentase level).
 - ☀️ **Vertical Brightness Rocker:** Pengatur kecerahan monitor laptop (Bright +, Bright -, dan persentase level).
 - 📺 **Media Deck & Buka Chrome:** Kontrol media (*Play/Pause*, *Next*, *Prev*) dan tombol cepat membuka Google Chrome.
@@ -18,9 +20,10 @@ Dirancang dengan antarmuka **Tactile Hardware Remote** modern (*Zero-Scroll 100d
   - **Power Menu:** *Lock Screen*, *Sleep*, *Shutdown (15s grace period)*, dan *Batalkan Shutdown*.
 - 🔍 **Smart Play & Search:** Pencarian dan pemutaran otomatis video YouTube teratas, Google Search ke laptop, dan ringkasan artikel Wikipedia langsung di HP.
 - ⌨️ **Remote Keyboard & Clipboard Sync:** Mengetik teks jarak jauh, tombol `Enter`/`Backspace`/`Esc`, serta kirim/ambil teks clipboard antara HP dan laptop.
-- 👁️ **Live Screen Peek:** Tangkapan layar (*screenshot*) desktop laptop secara real-time untuk memantau aktivitas.
+- 👁️ **Enlarged Screen Peek Modal:** Pop-up pembesar tampilan layar laptop dilengkapi pilihan Live Stream atau Snapshot beresolusi tinggi.
 - 📁 **Quick File Drop:** Mengunggah file dari smartphone langsung ke folder `Downloads/PocketDesk_Drop` di laptop dilengkapi *progress bar*.
 - 📢 **Pop-up Alert & Text-to-Speech (TTS):** Menampilkan notifikasi *pop-up* di layar laptop atau membacakan pesan suara via speaker laptop.
+- 🤖 **JARVIS AI Voice & Chat Assistant:** Deck asisten AI cerdas untuk mengirim instruksi suara (Push-to-Talk via mikrofon HP) dan ketikan teks langsung ke JARVIS di laptop, dengan routing output suara fleksibel (speaker laptop atau speaker HP).
 
 ---
 

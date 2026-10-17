@@ -203,6 +203,12 @@
       </div>
 
       <!-- Tengah: Tombol Kapsul Screen Off -->
+      <button onclick="openJarvisDeck()" class="tactile-btn h-8 px-2.5 rounded-full text-xs font-semibold text-cyan-400 gap-1.5 border border-cyan-500/30 bg-cyan-950/20 hover:bg-cyan-900/40" title="Buka JARVIS AI">
+        <span id="jarvis-header-dot" class="w-2 h-2 rounded-full bg-zinc-500"></span>
+        <i data-lucide="bot" class="w-3.5 h-3.5 text-cyan-400"></i>
+        <span class="text-[11px] tracking-tight">JARVIS</span>
+      </button>
+
       <button onclick="screenOff()" class="tactile-btn h-8 px-3 rounded-full text-xs font-medium text-amber-400 gap-1.5 border border-amber-500/20" title="Matikan Lampu Layar Laptop">
         <i data-lucide="monitor-off" class="w-3.5 h-3.5 text-amber-400"></i>
         <span class="text-[11px] tracking-tight">Screen Off</span>
@@ -221,11 +227,15 @@
       <!-- Container Trackpad & D-Pad (Bisa di-toggle) -->
       <div class="relative flex-1 rounded-2xl overflow-hidden border border-[#2b2b2b] bg-[#161616] flex flex-col">
 
-        <!-- Tombol Toggle Mode D-Pad (Pojok Kanan Atas) -->
-        <div class="absolute top-2 right-2 z-20 flex items-center gap-1">
-          <button id="toggle-nav-mode" onclick="toggleNavMode()" class="tactile-btn px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold gap-1 text-remote-muted bg-[#202020]/90 backdrop-blur-sm border border-white/10" title="Ganti Mode Touchpad / D-Pad Arah">
-            <i id="mode-icon" data-lucide="gamepad-2" class="w-3 h-3 text-remote-accent"></i>
-            <span id="mode-text">D-PAD</span>
+        <!-- Segmented Mode Switcher (Pojok Kanan Atas): Touchpad vs Live Peek -->
+        <div class="absolute top-2 right-2 z-30 flex items-center bg-[#1e1e1e]/90 backdrop-blur-md p-0.5 rounded-xl border border-white/10 shadow-lg select-none">
+          <button id="btn-mode-touch" onclick="setNavMode('touch')" class="px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold flex items-center gap-1.5 transition-all bg-white/10 text-white shadow-sm" title="Mode Virtual Touchpad">
+            <i data-lucide="mouse-pointer-2" class="w-3 h-3 text-remote-accent"></i>
+            <span>TOUCH</span>
+          </button>
+          <button id="btn-mode-peek" onclick="setNavMode('peek')" class="px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold flex items-center gap-1.5 transition-all text-remote-muted hover:text-white" title="Mode Live Peek (Livescreening Layar Laptop)">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>LIVE PEEK</span>
           </button>
         </div>
 
@@ -251,36 +261,82 @@
           </div>
         </div>
 
-        <!-- 2. MODE D-PAD (Tombol Arah Fisik) -->
-        <div id="dpad-container" class="hidden w-full h-full flex items-center justify-center bg-[#151515] p-3">
-          <div class="relative w-44 h-44 flex items-center justify-center">
-            <!-- D-Pad Base Circle -->
-            <div class="absolute inset-0 rounded-full bg-[#1c1c1c] border border-[#2a2a2a] shadow-inner"></div>
+        <!-- 2. MODE LIVE PEEK / LIVESCREENING -->
+        <div id="livepeek-container" class="hidden w-full h-full relative flex flex-col bg-[#0b0b0b] select-none overflow-hidden">
+          <!-- Screen Image & Interactive Surface -->
+          <div id="live-screen-wrapper" class="relative flex-1 w-full h-full flex items-center justify-center overflow-hidden bg-black cursor-crosshair">
+            
+            <!-- Live Desktop Stream Image -->
+            <img id="live-screen-img" src="" alt="Live Laptop Desktop" class="max-w-full max-h-full object-contain pointer-events-auto select-none rounded shadow-md" draggable="false" />
 
-            <!-- Up Arrow -->
-            <button onclick="pressKey('up')" class="tactile-btn absolute top-1.5 w-12 h-12 rounded-xl text-remote-text" title="Panah Atas">
-              <i data-lucide="chevron-up" class="w-6 h-6"></i>
-            </button>
+            <!-- Direct Tap Click Ripple Animation Element -->
+            <div id="click-ripple" class="absolute w-8 h-8 rounded-full border-2 border-emerald-400 bg-emerald-400/25 pointer-events-none -translate-x-1/2 -translate-y-1/2 scale-0 opacity-0 z-30 transition-transform duration-200"></div>
 
-            <!-- Down Arrow -->
-            <button onclick="pressKey('down')" class="tactile-btn absolute bottom-1.5 w-12 h-12 rounded-xl text-remote-text" title="Panah Bawah">
-              <i data-lucide="chevron-down" class="w-6 h-6"></i>
-            </button>
+            <!-- Loader Placeholder -->
+            <div id="live-loader" class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#121212] text-remote-muted text-xs p-4 text-center z-10">
+              <i data-lucide="loader-2" class="w-6 h-6 animate-spin text-emerald-400"></i>
+              <span class="font-medium text-white/90">Menghubungkan Live Screening...</span>
+              <span class="text-[10px] text-white/40">Mengambil stream layar desktop laptop</span>
+            </div>
 
-            <!-- Left Arrow -->
-            <button onclick="pressKey('left')" class="tactile-btn absolute left-1.5 w-12 h-12 rounded-xl text-remote-text" title="Panah Kiri">
-              <i data-lucide="chevron-left" class="w-6 h-6"></i>
-            </button>
+            <!-- Bottom-Left Floating Mode Badge -->
+            <div class="absolute bottom-2 left-2 z-20 flex items-center gap-1.5 bg-black/75 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 text-[10px] font-mono">
+              <span class="flex items-center gap-1 text-emerald-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="live-stream-badge">LIVE</span>
+              </span>
+              <span class="text-white/20">|</span>
+              <button id="btn-interact-mode" onclick="toggleInteractMode()" class="flex items-center gap-1 text-white/80 hover:text-white" title="Ganti Mode: Tap Langsung / Kursor Touchpad">
+                <i id="interact-icon" data-lucide="pointer" class="w-3 h-3 text-sky-400"></i>
+                <span id="interact-text">Sentuh Langsung</span>
+              </button>
+            </div>
 
-            <!-- Right Arrow -->
-            <button onclick="pressKey('right')" class="tactile-btn absolute right-1.5 w-12 h-12 rounded-xl text-remote-text" title="Panah Kanan">
-              <i data-lucide="chevron-right" class="w-6 h-6"></i>
-            </button>
+            <!-- Bottom-Right Floating Quick Controls -->
+            <div class="absolute bottom-2 right-2 z-20 flex items-center gap-1 bg-black/75 backdrop-blur-md p-1 rounded-lg border border-white/10">
+              <!-- Overlay D-Pad Arrow Toggle -->
+              <button id="btn-toggle-dpad-overlay" onclick="toggleDpadOverlay()" class="tactile-btn w-6 h-6 rounded text-white/70 hover:text-white" title="Tampilkan / Sembunyikan Tombol Arah D-Pad">
+                <i data-lucide="gamepad-2" class="w-3.5 h-3.5"></i>
+              </button>
+              <!-- Pause / Resume Stream -->
+              <button id="btn-live-pause" onclick="toggleLivePause()" class="tactile-btn w-6 h-6 rounded text-white/70 hover:text-white" title="Jeda / Lanjutkan Streaming">
+                <i id="live-pause-icon" data-lucide="pause" class="w-3.5 h-3.5"></i>
+              </button>
+              <!-- Refresh Single Snapshot -->
+              <button onclick="refreshLiveStream()" class="tactile-btn w-6 h-6 rounded text-emerald-400 hover:text-emerald-300" title="Refresh Gambar">
+                <i id="live-refresh-icon" data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              </button>
+              <!-- Open Enlarged Modal -->
+              <button onclick="openSheet('sheet-peek')" class="tactile-btn w-6 h-6 rounded text-white/70 hover:text-white" title="Perbesar Layar Penuh">
+                <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
 
-            <!-- Center OK / Enter Button -->
-            <button onclick="pressKey('enter')" class="tactile-btn tactile-btn-accent z-10 w-13 h-13 rounded-full text-xs font-bold uppercase tracking-wider" title="Enter / OK">
-              OK
-            </button>
+            <!-- OPTIONAL TRANSLUCENT OVERLAY D-PAD (Arrow Keys) -->
+            <div id="dpad-overlay" class="hidden absolute inset-0 z-25 bg-black/40 backdrop-blur-[1px] flex items-center justify-center p-2">
+              <div class="relative w-40 h-40 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full bg-black/60 border border-white/15 backdrop-blur-sm shadow-xl"></div>
+                <button onclick="pressKey('up')" class="tactile-btn absolute top-1.5 w-11 h-11 rounded-xl text-white bg-white/10 active:bg-white/30 border border-white/20">
+                  <i data-lucide="chevron-up" class="w-6 h-6"></i>
+                </button>
+                <button onclick="pressKey('down')" class="tactile-btn absolute bottom-1.5 w-11 h-11 rounded-xl text-white bg-white/10 active:bg-white/30 border border-white/20">
+                  <i data-lucide="chevron-down" class="w-6 h-6"></i>
+                </button>
+                <button onclick="pressKey('left')" class="tactile-btn absolute left-1.5 w-11 h-11 rounded-xl text-white bg-white/10 active:bg-white/30 border border-white/20">
+                  <i data-lucide="chevron-left" class="w-6 h-6"></i>
+                </button>
+                <button onclick="pressKey('right')" class="tactile-btn absolute right-1.5 w-11 h-11 rounded-xl text-white bg-white/10 active:bg-white/30 border border-white/20">
+                  <i data-lucide="chevron-right" class="w-6 h-6"></i>
+                </button>
+                <button onclick="pressKey('enter')" class="tactile-btn tactile-btn-accent z-10 w-12 h-12 rounded-full text-xs font-bold uppercase tracking-wider">
+                  OK
+                </button>
+                <button onclick="toggleDpadOverlay()" class="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center text-xs">
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -408,7 +464,7 @@
       </button>
 
       <!-- 3. Peek Screen -->
-      <button onclick="openSheet('sheet-peek')" class="tactile-btn flex-1 h-full mx-0.5 rounded-xl flex-col gap-0.5 text-remote-muted hover:text-white" title="Intip Layar Laptop (Screenshot)">
+      <button onclick="handleDockPeekClick()" class="tactile-btn flex-1 h-full mx-0.5 rounded-xl flex-col gap-0.5 text-remote-muted hover:text-white" title="Intip Layar Laptop (Live Peek / Modal)">
         <i data-lucide="eye" class="w-4 h-4 text-emerald-400"></i>
         <span class="text-[9px] font-medium tracking-tight">Peek</span>
       </button>
@@ -417,6 +473,12 @@
       <button onclick="openSheet('sheet-drop')" class="tactile-btn flex-1 h-full mx-0.5 rounded-xl flex-col gap-0.5 text-remote-muted hover:text-white" title="Kirim Berkas ke Laptop">
         <i data-lucide="folder-up" class="w-4 h-4 text-purple-400"></i>
         <span class="text-[9px] font-medium tracking-tight">Drop</span>
+      </button>
+
+      <!-- JARVIS AI Voice & Chat -->
+      <button onclick="openJarvisDeck()" class="tactile-btn flex-1 h-full mx-0.5 rounded-xl flex-col gap-0.5 text-cyan-400 hover:text-white bg-cyan-950/30 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)]" title="JARVIS AI Voice & Chat Assistant">
+        <i data-lucide="bot" class="w-4 h-4 text-cyan-400"></i>
+        <span class="text-[9px] font-bold tracking-tight text-cyan-300">JARVIS</span>
       </button>
 
       <!-- 5. Pesan / TTS -->
@@ -568,25 +630,32 @@
       <div class="flex items-center justify-between border-b border-[#2a2a2a] pb-2 shrink-0">
         <div class="flex items-center gap-2">
           <i data-lucide="eye" class="w-4 h-4 text-emerald-400"></i>
-          <h3 class="text-sm font-bold text-white">Intip Layar Laptop</h3>
+          <h3 class="text-sm font-bold text-white">Layar Laptop</h3>
         </div>
-        <button onclick="closeSheet('sheet-peek')" class="tactile-btn w-7 h-7 rounded-full text-remote-muted">
-          <i data-lucide="x" class="w-4 h-4"></i>
-        </button>
+        <div class="flex items-center gap-2">
+          <button id="modal-stream-toggle" onclick="toggleModalLiveStream()" class="tactile-btn px-2.5 py-1 rounded-lg text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 gap-1" title="Toggle Live Stream / Foto">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="modal-stream-text">Live Stream</span>
+          </button>
+          <button onclick="closeSheet('sheet-peek')" class="tactile-btn w-7 h-7 rounded-full text-remote-muted">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
       </div>
 
-      <!-- Preview Image Frame -->
-      <div class="flex-1 min-h-[190px] rounded-xl overflow-hidden border border-[#2a2a2a] bg-[#101010] flex items-center justify-center relative">
-        <img id="peek-img" src="" alt="Layar Laptop" class="w-full h-auto max-h-[50vh] object-contain rounded-lg hidden" />
+      <!-- Preview Image Frame with Direct Click -->
+      <div id="modal-screen-wrapper" class="flex-1 min-h-[190px] rounded-xl overflow-hidden border border-[#2a2a2a] bg-[#101010] flex items-center justify-center relative cursor-crosshair">
+        <img id="peek-img" src="" alt="Layar Laptop" class="w-full h-auto max-h-[50vh] object-contain rounded-lg hidden select-none" draggable="false" />
+        <div id="modal-click-ripple" class="absolute w-8 h-8 rounded-full border-2 border-emerald-400 bg-emerald-400/25 pointer-events-none -translate-x-1/2 -translate-y-1/2 scale-0 opacity-0 z-30 transition-transform duration-200"></div>
         <div id="peek-loader" class="flex flex-col items-center justify-center gap-2 text-remote-muted text-xs p-6 text-center">
           <i data-lucide="loader-2" class="w-6 h-6 animate-spin text-emerald-400"></i>
-          <span>Mengambil tangkapan layar...</span>
+          <span>Menghubungkan ke layar...</span>
         </div>
       </div>
 
       <!-- Footer Info & Refresh Button -->
       <div class="flex items-center justify-between shrink-0 pt-1">
-        <span id="peek-time" class="text-[10px] font-mono text-remote-muted">Diperbarui: -</span>
+        <span id="peek-time" class="text-[10px] font-mono text-remote-muted">Tap layar untuk klik langsung</span>
         <button onclick="refreshScreenshot()" class="tactile-btn px-4 h-9 rounded-xl text-xs font-semibold text-emerald-400 gap-1.5">
           <i id="peek-spin" data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
           <span>Refresh Layar</span>
@@ -694,6 +763,126 @@
 
 
   <!-- =================================================================== -->
+  <!-- =================================================================== -->
+  <!-- MODAL / BOTTOM SHEET: JARVIS AI VOICE & CHAT ASSISTANT -->
+  <!-- =================================================================== -->
+  <div id="sheet-jarvis" class="sheet-modal fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex flex-col justify-end sm:justify-center items-center p-0 sm:p-4">
+    <div class="w-full max-w-sm bg-[#141416] border-t sm:border border-cyan-500/30 rounded-t-3xl sm:rounded-2xl p-4 shadow-[0_0_35px_rgba(6,182,212,0.18)] flex flex-col gap-3 animate-sheet-up max-h-[90dvh] overflow-hidden">
+      
+      <!-- JARVIS Header -->
+      <div class="flex items-center justify-between border-b border-[#242426] pb-2 shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
+            <i data-lucide="bot" class="w-3.5 h-3.5 text-cyan-400"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white tracking-wide">JARVIS AI</h3>
+            <p id="jarvis-deck-subtitle" class="text-[9px] text-cyan-400/80 font-mono">Local Assistant</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-2">
+          <!-- Status Pill -->
+          <span id="jarvis-deck-badge" class="px-2 py-0.5 text-[10px] rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700 flex items-center gap-1 font-mono">
+            <span class="w-1.5 h-1.5 rounded-full bg-zinc-400"></span> Memeriksa...
+          </span>
+          <!-- Close Button -->
+          <button onclick="closeSheet('sheet-jarvis')" class="tactile-btn w-7 h-7 rounded-full text-remote-muted hover:text-white">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Offline Wake Alert Banner (Hidden if Online) -->
+      <div id="jarvis-offline-banner" class="hidden p-2.5 rounded-xl bg-red-950/40 border border-red-500/30 flex items-center justify-between gap-2 shrink-0">
+        <div class="flex items-center gap-2 text-xs text-red-200">
+          <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400 shrink-0"></i>
+          <span class="text-[11px] leading-tight">JARVIS di laptop sedang nonaktif.</span>
+        </div>
+        <button onclick="startJarvisFromPhone()" id="jarvis-start-btn" class="tactile-btn px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-red-500/20 hover:bg-red-500/40 border border-red-500/40 text-red-100 flex items-center gap-1 shrink-0">
+          <i data-lucide="zap" class="w-3 h-3 text-amber-300"></i>
+          <span>Nyalakan</span>
+        </button>
+      </div>
+
+      <!-- Audio Output Target Selector -->
+      <div class="flex items-center justify-between bg-[#19191d] p-1.5 rounded-xl border border-[#2b2b32] shrink-0">
+        <span class="text-[10px] text-remote-muted font-medium ml-1">Suara Jawaban:</span>
+        <div class="flex items-center gap-1">
+          <button onclick="setJarvisAudioTarget('laptop')" id="target-btn-laptop" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1">
+            <i data-lucide="speaker" class="w-3 h-3"></i>
+            <span>Laptop</span>
+          </button>
+          <button onclick="setJarvisAudioTarget('phone')" id="target-btn-phone" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all bg-[#121214] text-zinc-400 border border-transparent hover:text-white flex items-center gap-1">
+            <i data-lucide="smartphone" class="w-3 h-3"></i>
+            <span>HP</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Scrollable Chat Bubble Log -->
+      <div id="jarvis-chat-log" class="flex-1 min-h-[170px] max-h-[36dvh] overflow-y-auto space-y-2.5 p-2.5 rounded-xl bg-[#0e0e11] border border-[#222228] text-xs">
+        <!-- Default Welcome Message -->
+        <div class="flex gap-2 items-start">
+          <div class="w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center shrink-0 mt-0.5">
+            <i data-lucide="bot" class="w-3 h-3 text-cyan-400"></i>
+          </div>
+          <div class="bg-[#181820] border border-[#2a2a35] text-zinc-200 rounded-2xl rounded-tl-sm px-3 py-2 leading-relaxed shadow-sm">
+            Halo sir! JARVIS siap menerima instruksi suara atau teks langsung dari smartphone Anda.
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Suggestion Chips -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 shrink-0 scrollbar-none text-[10px]">
+        <button onclick="sendJarvisPreset('Buka Chrome')" class="tactile-btn shrink-0 px-2.5 py-1 rounded-full bg-[#1b1b22] border border-[#2e2e3a] text-zinc-300 hover:text-cyan-400 hover:border-cyan-500/40">
+          🌐 Chrome
+        </button>
+        <button onclick="sendJarvisPreset('Putar musik')" class="tactile-btn shrink-0 px-2.5 py-1 rounded-full bg-[#1b1b22] border border-[#2e2e3a] text-zinc-300 hover:text-cyan-400 hover:border-cyan-500/40">
+          🎵 Musik
+        </button>
+        <button onclick="sendJarvisPreset('Info sistem')" class="tactile-btn shrink-0 px-2.5 py-1 rounded-full bg-[#1b1b22] border border-[#2e2e3a] text-zinc-300 hover:text-cyan-400 hover:border-cyan-500/40">
+          ⚡ Info Spek
+        </button>
+        <button onclick="sendJarvisPreset('Ambil tangkapan layar')" class="tactile-btn shrink-0 px-2.5 py-1 rounded-full bg-[#1b1b22] border border-[#2e2e3a] text-zinc-300 hover:text-cyan-400 hover:border-cyan-500/40">
+          📸 Screenshot
+        </button>
+        <button onclick="sendJarvisPreset('Volume 50%')" class="tactile-btn shrink-0 px-2.5 py-1 rounded-full bg-[#1b1b22] border border-[#2e2e3a] text-zinc-300 hover:text-cyan-400 hover:border-cyan-500/40">
+          🔊 Vol 50%
+        </button>
+      </div>
+
+      <!-- Voice Push-To-Talk Button & Recording HUD -->
+      <div class="flex flex-col items-center justify-center gap-1.5 pt-1 shrink-0">
+        <div id="jarvis-voice-status" class="text-[11px] font-mono text-remote-muted h-4 flex items-center gap-1">
+          <span>Tahan atau ketuk mic untuk bicara</span>
+        </div>
+
+        <div class="flex items-center justify-center w-full gap-3">
+          <!-- Voice Button -->
+          <button id="jarvis-mic-btn" class="tactile-btn w-14 h-14 rounded-full bg-[#1a1a24] border-2 border-cyan-500/40 text-cyan-400 shadow-[0_0_18px_rgba(6,182,212,0.2)] active:scale-95 transition-all flex items-center justify-center relative select-none">
+            <span id="jarvis-mic-glow" class="absolute inset-0 rounded-full border-2 border-cyan-400 animate-ping opacity-0 pointer-events-none"></span>
+            <i id="jarvis-mic-icon" data-lucide="mic" class="w-6 h-6"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Text Input & Send Row -->
+      <div class="flex items-center gap-1.5 pt-1 border-t border-[#222228] shrink-0">
+        <div class="relative flex-1">
+          <input id="jarvis-text-input" type="text" placeholder="Ketik perintah ke JARVIS..." class="w-full bg-[#101014] border border-[#2b2b35] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-cyan-400 pr-7 font-medium" onkeydown="if(event.key==='Enter') sendJarvisText();">
+          <button onclick="document.getElementById('jarvis-text-input').value=''" class="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white">
+            <i data-lucide="x" class="w-3 h-3"></i>
+          </button>
+        </div>
+        <button onclick="sendJarvisText()" id="jarvis-send-btn" class="tactile-btn w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/30 flex items-center justify-center shrink-0">
+          <i data-lucide="send" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- MODAL 6: POWER & SYSTEM CONTROLS (Lock, Sleep, Shutdown, Cancel) -->
   <!-- =================================================================== -->
   <div id="modal-power" class="sheet-modal fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
@@ -763,7 +952,12 @@
     let isMuted = false;
     let currentVolume = 50;
     let currentBrightness = 70;
-    let isDpadMode = false;
+    let currentNavMode = 'touch'; // 'touch' or 'peek'
+    let isLivePaused = false;
+    let liveInteractMode = 'tap'; // 'tap' or 'cursor'
+    let isDpadOverlayOpen = false;
+    let liveStreamRetryTimeout = null;
+    let modalStreamActive = false;
 
     // Haptic Feedback
     function haptic(ms = 25) {
@@ -825,6 +1019,15 @@
       haptic(15);
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
+      if (id === 'sheet-peek') {
+        const modalImg = document.getElementById('peek-img');
+        if (modalImg && modalStreamActive) {
+          modalImg.src = '';
+          modalStreamActive = false;
+          const text = document.getElementById('modal-stream-text');
+          if (text) text.innerText = 'Live Stream';
+        }
+      }
     }
 
     function openPowerModal() {
@@ -843,34 +1046,418 @@
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
           modal.classList.add('hidden');
+          if (modal.id === 'sheet-peek' && modalStreamActive) {
+            const modalImg = document.getElementById('peek-img');
+            if (modalImg) modalImg.src = '';
+            modalStreamActive = false;
+            const text = document.getElementById('modal-stream-text');
+            if (text) text.innerText = 'Live Stream';
+          }
         }
       });
     });
 
-    // Toggle Nav Mode: Touchpad vs D-Pad
-    function toggleNavMode() {
-      haptic(30);
-      isDpadMode = !isDpadMode;
-      const touchpadBox = document.getElementById('touchpad-container');
-      const dpadBox = document.getElementById('dpad-container');
-      const text = document.getElementById('mode-text');
-      const icon = document.getElementById('mode-icon');
+    // -------------------------------------------------------------------------
+    // NAVIGATION & LIVE SCREENING (PEEK) CONTROLLER
+    // -------------------------------------------------------------------------
+    function setNavMode(mode) {
+      haptic(25);
+      currentNavMode = mode;
+      const touchBox = document.getElementById('touchpad-container');
+      const peekBox = document.getElementById('livepeek-container');
+      const btnTouch = document.getElementById('btn-mode-touch');
+      const btnPeek = document.getElementById('btn-mode-peek');
 
-      if (isDpadMode) {
-        touchpadBox.classList.add('hidden');
-        dpadBox.classList.remove('hidden');
-        text.innerText = 'TOUCH';
-        icon.setAttribute('data-lucide', 'mouse-pointer-2');
-        showToast('Mode D-Pad Panah Aktif', 'info');
+      if (mode === 'peek') {
+        if (touchBox) touchBox.classList.add('hidden');
+        if (peekBox) peekBox.classList.remove('hidden');
+
+        if (btnTouch) {
+          btnTouch.className = 'px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold flex items-center gap-1.5 transition-all text-remote-muted hover:text-white';
+        }
+        if (btnPeek) {
+          btnPeek.className = 'px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold flex items-center gap-1.5 transition-all bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm';
+        }
+
+        startLiveStream();
+        showToast('Mode Live Peek Aktif! Tap layar untuk klik langsung.', 'info');
       } else {
-        touchpadBox.classList.remove('hidden');
-        dpadBox.classList.add('hidden');
-        text.innerText = 'D-PAD';
-        icon.setAttribute('data-lucide', 'gamepad-2');
+        if (touchBox) touchBox.classList.remove('hidden');
+        if (peekBox) peekBox.classList.add('hidden');
+
+        if (btnTouch) {
+          btnTouch.className = 'px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold flex items-center gap-1.5 transition-all bg-white/10 text-white shadow-sm';
+        }
+        if (btnPeek) {
+          btnPeek.className = 'px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold flex items-center gap-1.5 transition-all text-remote-muted hover:text-white';
+        }
+
+        stopLiveStream();
         showToast('Mode Virtual Touchpad Aktif', 'info');
       }
       if (window.lucide) lucide.createIcons();
     }
+
+    function toggleNavMode() {
+      setNavMode(currentNavMode === 'touch' ? 'peek' : 'touch');
+    }
+
+    function handleDockPeekClick() {
+      haptic(25);
+      if (currentNavMode !== 'peek') {
+        setNavMode('peek');
+      } else {
+        openSheet('sheet-peek');
+      }
+    }
+
+    function startLiveStream() {
+      if (isLivePaused) isLivePaused = false;
+      const img = document.getElementById('live-screen-img');
+      const loader = document.getElementById('live-loader');
+      const badge = document.getElementById('live-stream-badge');
+      const pauseIcon = document.getElementById('live-pause-icon');
+
+      if (badge) badge.innerText = 'LIVE';
+      if (pauseIcon) pauseIcon.setAttribute('data-lucide', 'pause');
+      if (loader) loader.classList.remove('hidden');
+
+      const streamUrl = `/api/screen/stream?fps=10&quality=60&width=960&t=${Date.now()}`;
+      if (img) {
+        img.onload = () => {
+          if (loader) loader.classList.add('hidden');
+        };
+        img.onerror = () => {
+          if (loader) loader.classList.remove('hidden');
+          if (liveStreamRetryTimeout) clearTimeout(liveStreamRetryTimeout);
+          liveStreamRetryTimeout = setTimeout(() => {
+            if (currentNavMode === 'peek' && !isLivePaused) {
+              refreshLiveStream();
+            }
+          }, 1500);
+        };
+        img.src = streamUrl;
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function stopLiveStream() {
+      const img = document.getElementById('live-screen-img');
+      if (img) img.src = '';
+      if (liveStreamRetryTimeout) {
+        clearTimeout(liveStreamRetryTimeout);
+        liveStreamRetryTimeout = null;
+      }
+    }
+
+    function toggleLivePause() {
+      haptic(20);
+      isLivePaused = !isLivePaused;
+      const pauseIcon = document.getElementById('live-pause-icon');
+      const badge = document.getElementById('live-stream-badge');
+      if (isLivePaused) {
+        stopLiveStream();
+        if (badge) badge.innerText = 'PAUSED';
+        if (pauseIcon) pauseIcon.setAttribute('data-lucide', 'play');
+        showToast('Streaming dijeda', 'info');
+      } else {
+        startLiveStream();
+        if (badge) badge.innerText = 'LIVE';
+        if (pauseIcon) pauseIcon.setAttribute('data-lucide', 'pause');
+        showToast('Streaming dilanjutkan', 'success');
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function refreshLiveStream() {
+      haptic(20);
+      const refreshIcon = document.getElementById('live-refresh-icon');
+      if (refreshIcon) refreshIcon.classList.add('animate-spin');
+
+      const img = document.getElementById('live-screen-img');
+      const loader = document.getElementById('live-loader');
+      const newSrc = `/api/screen/peek?t=${Date.now()}`;
+
+      const temp = new Image();
+      temp.onload = () => {
+        if (img) img.src = newSrc;
+        if (loader) loader.classList.add('hidden');
+        if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+      };
+      temp.onerror = () => {
+        if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+        showToast('Gagal memuat layar', 'error');
+      };
+      temp.src = newSrc;
+    }
+
+    function toggleDpadOverlay() {
+      haptic(20);
+      isDpadOverlayOpen = !isDpadOverlayOpen;
+      const overlay = document.getElementById('dpad-overlay');
+      if (overlay) {
+        overlay.classList.toggle('hidden', !isDpadOverlayOpen);
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function toggleInteractMode() {
+      haptic(20);
+      liveInteractMode = liveInteractMode === 'tap' ? 'cursor' : 'tap';
+      const text = document.getElementById('interact-text');
+      const icon = document.getElementById('interact-icon');
+      if (liveInteractMode === 'tap') {
+        if (text) text.innerText = 'Sentuh Langsung';
+        if (icon) icon.setAttribute('data-lucide', 'pointer');
+        showToast('Mode: Sentuh Langsung (Tap untuk klik)', 'info');
+      } else {
+        if (text) text.innerText = 'Trackpad Kursor';
+        if (icon) icon.setAttribute('data-lucide', 'mouse-pointer-2');
+        showToast('Mode: Trackpad Kursor (Geser untuk gerakkan kursor)', 'info');
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // Direct Screen Touch & Tap Gesture Engine
+    function setupLiveScreenTouch() {
+      const wrapper = document.getElementById('live-screen-wrapper');
+      const img = document.getElementById('live-screen-img');
+      const ripple = document.getElementById('click-ripple');
+      if (!wrapper || !img) return;
+
+      let touchStartX = 0, touchStartY = 0;
+      let lastTapTime = 0;
+      let isDragging = false;
+      let longPressTimer = null;
+
+      function showRipple(clientX, clientY) {
+        if (!ripple) return;
+        const rect = wrapper.getBoundingClientRect();
+        const relX = clientX - rect.left;
+        const relY = clientY - rect.top;
+
+        ripple.style.left = `${relX}px`;
+        ripple.style.top = `${relY}px`;
+        ripple.classList.remove('scale-0', 'opacity-0');
+        ripple.classList.add('scale-100', 'opacity-100');
+
+        setTimeout(() => {
+          ripple.classList.add('opacity-0');
+          ripple.classList.remove('scale-100');
+          ripple.classList.add('scale-0');
+        }, 220);
+      }
+
+      function getNormalizedCoords(clientX, clientY) {
+        const rect = img.getBoundingClientRect();
+        const clickX = clientX - rect.left;
+        const clickY = clientY - rect.top;
+
+        const naturalWidth = img.naturalWidth || 1920;
+        const naturalHeight = img.naturalHeight || 1080;
+
+        const elemWidth = rect.width;
+        const elemHeight = rect.height;
+        if (elemWidth <= 0 || elemHeight <= 0) return null;
+
+        const imageAspect = naturalWidth / naturalHeight;
+        const elemAspect = elemWidth / elemHeight;
+
+        let renderWidth, renderHeight, offsetX, offsetY;
+
+        if (elemAspect > imageAspect) {
+          renderHeight = elemHeight;
+          renderWidth = elemHeight * imageAspect;
+          offsetX = (elemWidth - renderWidth) / 2;
+          offsetY = 0;
+        } else {
+          renderWidth = elemWidth;
+          renderHeight = elemWidth / imageAspect;
+          offsetX = 0;
+          offsetY = (elemHeight - renderHeight) / 2;
+        }
+
+        const imgX = clickX - offsetX;
+        const imgY = clickY - offsetY;
+
+        const clampedX = Math.max(0, Math.min(renderWidth, imgX));
+        const clampedY = Math.max(0, Math.min(renderHeight, imgY));
+
+        return {
+          x: clampedX / renderWidth,
+          y: clampedY / renderHeight
+        };
+      }
+
+      // Touch Events for Mobile
+      wrapper.addEventListener('touchstart', (e) => {
+        if (e.target.closest('#dpad-overlay') || e.target.closest('.absolute.bottom-2')) {
+          return;
+        }
+        e.preventDefault();
+        haptic(15);
+
+        if (e.touches.length === 1) {
+          const t = e.touches[0];
+          touchStartX = t.clientX;
+          touchStartY = t.clientY;
+          isDragging = false;
+
+          if (liveInteractMode === 'tap') {
+            longPressTimer = setTimeout(() => {
+              const coords = getNormalizedCoords(touchStartX, touchStartY);
+              if (coords) {
+                haptic(45);
+                showRipple(touchStartX, touchStartY);
+                apiPost('/api/screen/click', { x: coords.x, y: coords.y, button: 'right', clicks: 1 });
+                showToast('Klik Kanan', 'info');
+              }
+              longPressTimer = null;
+            }, 500);
+          }
+        }
+      }, { passive: false });
+
+      wrapper.addEventListener('touchmove', (e) => {
+        if (e.target.closest('#dpad-overlay') || e.target.closest('.absolute.bottom-2')) {
+          return;
+        }
+        e.preventDefault();
+
+        if (e.touches.length === 1) {
+          const t = e.touches[0];
+          const dist = Math.hypot(t.clientX - touchStartX, t.clientY - touchStartY);
+          if (dist > 8) {
+            isDragging = true;
+            if (longPressTimer) {
+              clearTimeout(longPressTimer);
+              longPressTimer = null;
+            }
+          }
+
+          if (liveInteractMode === 'cursor') {
+            const dx = (t.clientX - touchStartX) * sensitivity;
+            const dy = (t.clientY - touchStartY) * sensitivity;
+            if (socket && socket.readyState === WebSocket.OPEN && (dx !== 0 || dy !== 0)) {
+              socket.send(JSON.stringify({ type: 'move', dx: Math.round(dx), dy: Math.round(dy) }));
+            }
+            touchStartX = t.clientX;
+            touchStartY = t.clientY;
+          }
+        }
+      }, { passive: false });
+
+      wrapper.addEventListener('touchend', (e) => {
+        if (e.target.closest('#dpad-overlay') || e.target.closest('.absolute.bottom-2')) {
+          return;
+        }
+        e.preventDefault();
+
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+
+        if (!isDragging && liveInteractMode === 'tap') {
+          const now = Date.now();
+          const isDouble = (now - lastTapTime) < 300;
+          lastTapTime = now;
+
+          const coords = getNormalizedCoords(touchStartX, touchStartY);
+          if (coords) {
+            haptic(25);
+            showRipple(touchStartX, touchStartY);
+            const clicks = isDouble ? 2 : 1;
+            apiPost('/api/screen/click', { x: coords.x, y: coords.y, button: 'left', clicks });
+          }
+        } else if (!isDragging && liveInteractMode === 'cursor') {
+          haptic(25);
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: 'click', button: 'left' }));
+          }
+        }
+      }, { passive: false });
+
+      // Desktop Click support for direct interaction
+      wrapper.addEventListener('click', (e) => {
+        if (e.target.closest('#dpad-overlay') || e.target.closest('.absolute.bottom-2')) return;
+        const coords = getNormalizedCoords(e.clientX, e.clientY);
+        if (coords) {
+          showRipple(e.clientX, e.clientY);
+          apiPost('/api/screen/click', { x: coords.x, y: coords.y, button: 'left', clicks: 1 });
+        }
+      });
+    }
+
+    // Modal Screen Touch & Live Stream Mode
+    function setupModalScreenTouch() {
+      const wrapper = document.getElementById('modal-screen-wrapper');
+      const img = document.getElementById('peek-img');
+      const ripple = document.getElementById('modal-click-ripple');
+      if (!wrapper || !img) return;
+
+      wrapper.addEventListener('click', (e) => {
+        const rect = img.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
+        if (clickX >= 0 && clickX <= rect.width && clickY >= 0 && clickY <= rect.height) {
+          const normX = Math.max(0, Math.min(1, clickX / rect.width));
+          const normY = Math.max(0, Math.min(1, clickY / rect.height));
+
+          if (ripple) {
+            const wrapRect = wrapper.getBoundingClientRect();
+            ripple.style.left = `${e.clientX - wrapRect.left}px`;
+            ripple.style.top = `${e.clientY - wrapRect.top}px`;
+            ripple.classList.remove('scale-0', 'opacity-0');
+            ripple.classList.add('scale-100', 'opacity-100');
+            setTimeout(() => {
+              ripple.classList.add('opacity-0');
+              ripple.classList.remove('scale-100');
+              ripple.classList.add('scale-0');
+            }, 220);
+          }
+
+          haptic(25);
+          apiPost('/api/screen/click', { x: normX, y: normY, button: 'left', clicks: 1 });
+          showToast('Klik dikirim ke laptop', 'info');
+        }
+      });
+    }
+
+    function toggleModalLiveStream() {
+      haptic(20);
+      modalStreamActive = !modalStreamActive;
+      const img = document.getElementById('peek-img');
+      const loader = document.getElementById('peek-loader');
+      const text = document.getElementById('modal-stream-text');
+
+      if (modalStreamActive) {
+        if (text) text.innerText = 'Foto Diam';
+        if (loader) loader.classList.remove('hidden');
+        if (img) {
+          img.onload = () => { if (loader) loader.classList.add('hidden'); };
+          img.src = `/api/screen/stream?fps=10&quality=65&width=1280&t=${Date.now()}`;
+          img.classList.remove('hidden');
+        }
+        showToast('Live stream modal aktif', 'info');
+      } else {
+        if (text) text.innerText = 'Live Stream';
+        refreshScreenshot();
+      }
+    }
+
+    // Auto-pause live stream when phone screen is locked or tab hidden
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (currentNavMode === 'peek' && !isLivePaused) {
+          stopLiveStream();
+        }
+      } else {
+        if (currentNavMode === 'peek' && !isLivePaused) {
+          startLiveStream();
+        }
+      }
+    });
 
     // -------------------------------------------------------------------------
     // API POST / GET DISPATCHERS
@@ -1542,11 +2129,401 @@
     }
 
     // Initialization
-    window.addEventListener('DOMContentLoaded', () => {
+    
+    // =========================================================================
+    // JARVIS AI ASSISTANT CLIENT ENGINE (Speech + Text + Phone TTS Routing)
+    // =========================================================================
+    let jarvisAudioTarget = 'laptop'; // 'laptop' | 'phone'
+    let jarvisIsRecording = false;
+    let jarvisAudioContext = null;
+    let jarvisMediaStream = null;
+    let jarvisAudioProcessor = null;
+    let jarvisAudioChunks = [];
+    let jarvisLastStatus = false;
+
+    function openJarvisDeck() {
+      openSheet('sheet-jarvis');
+      checkJarvisStatus();
+    }
+
+    function setJarvisAudioTarget(target) {
+      haptic(15);
+      jarvisAudioTarget = target;
+      const btnLaptop = document.getElementById('target-btn-laptop');
+      const btnPhone = document.getElementById('target-btn-phone');
+      if (target === 'phone') {
+        btnPhone.className = 'px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1';
+        btnLaptop.className = 'px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all bg-[#121214] text-zinc-400 border border-transparent hover:text-white flex items-center gap-1';
+        showToast('Suara JARVIS akan diputar di HP ini', 'info');
+      } else {
+        btnLaptop.className = 'px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1';
+        btnPhone.className = 'px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all bg-[#121214] text-zinc-400 border border-transparent hover:text-white flex items-center gap-1';
+        showToast('Suara JARVIS diputar di laptop', 'info');
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    async function checkJarvisStatus() {
+      try {
+        const res = await apiGet('/api/jarvis/status');
+        const badge = document.getElementById('jarvis-deck-badge');
+        const headerDot = document.getElementById('jarvis-header-dot');
+        const banner = document.getElementById('jarvis-offline-banner');
+        const subtitle = document.getElementById('jarvis-deck-subtitle');
+
+        if (res && res.online) {
+          jarvisLastStatus = true;
+          if (badge) {
+            badge.className = 'px-2 py-0.5 text-[10px] rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 font-mono';
+            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> ONLINE';
+          }
+          if (headerDot) {
+            headerDot.className = 'w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]';
+          }
+          if (banner) banner.classList.add('hidden');
+          if (subtitle && res.model) subtitle.innerText = `Model: ${res.model}`;
+        } else {
+          jarvisLastStatus = false;
+          if (badge) {
+            badge.className = 'px-2 py-0.5 text-[10px] rounded-full bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1 font-mono';
+            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-red-400"></span> OFFLINE';
+          }
+          if (headerDot) {
+            headerDot.className = 'w-2 h-2 rounded-full bg-zinc-500';
+          }
+          if (banner) banner.classList.remove('hidden');
+          if (subtitle) subtitle.innerText = 'Offline (Laptop)';
+        }
+      } catch (e) {
+        console.warn('Failed checking JARVIS status:', e);
+      }
+    }
+
+    async function startJarvisFromPhone() {
+      haptic(25);
+      const btn = document.getElementById('jarvis-start-btn');
+      if (btn) btn.innerHTML = '<i data-lucide="loader" class="w-3 h-3 animate-spin"></i><span>Memulai...</span>';
+      if (window.lucide) lucide.createIcons();
+      showToast('Menyalakan JARVIS di laptop...', 'info');
+
+      try {
+        const res = await apiPost('/api/jarvis/start');
+        if (res && res.success) {
+          showToast('JARVIS sedang booting di laptop!', 'success');
+          setTimeout(checkJarvisStatus, 3000);
+          setTimeout(checkJarvisStatus, 6000);
+        } else {
+          showToast(res.error || 'Gagal menyalakan JARVIS', 'error');
+        }
+      } catch (err) {
+        showToast('Gagal menghubungi backend', 'error');
+      } finally {
+        if (btn) btn.innerHTML = '<i data-lucide="zap" class="w-3 h-3 text-amber-300"></i><span>Nyalakan</span>';
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+
+    function appendJarvisBubble(sender, text) {
+      const log = document.getElementById('jarvis-chat-log');
+      if (!log) return;
+
+      const bubbleWrap = document.createElement('div');
+      bubbleWrap.className = 'flex gap-2 items-start' + (sender === 'user' ? ' justify-end' : '');
+
+      if (sender === 'user') {
+        bubbleWrap.innerHTML = `
+          <div class="bg-cyan-600/30 border border-cyan-500/40 text-cyan-100 rounded-2xl rounded-tr-sm px-3 py-2 leading-relaxed max-w-[85%] shadow-sm font-medium">
+            ${escapeHtml(text)}
+          </div>
+          <div class="w-5 h-5 rounded-full bg-cyan-500/30 border border-cyan-500/50 flex items-center justify-center shrink-0 mt-0.5 text-[10px] text-cyan-200">
+            <i data-lucide="user" class="w-3 h-3"></i>
+          </div>
+        `;
+      } else {
+        bubbleWrap.innerHTML = `
+          <div class="w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center shrink-0 mt-0.5">
+            <i data-lucide="bot" class="w-3 h-3 text-cyan-400"></i>
+          </div>
+          <div class="bg-[#181820] border border-[#2a2a35] text-zinc-200 rounded-2xl rounded-tl-sm px-3 py-2 leading-relaxed max-w-[85%] shadow-sm">
+            ${escapeHtml(text)}
+          </div>
+        `;
+      }
+
+      log.appendChild(bubbleWrap);
+      log.scrollTop = log.scrollHeight;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function escapeHtml(str) {
+      return (str || '').replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+      });
+    }
+
+    function playBase64Wav(b64Data) {
+      try {
+        const byteCharacters = atob(b64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'audio/wav' });
+        const audioUrl = URL.createObjectURL(blob);
+        const audio = new Audio(audioUrl);
+        audio.play().catch(e => console.warn('Mobile audio play error:', e));
+      } catch (e) {
+        console.error('Failed to decode/play base64 WAV:', e);
+      }
+    }
+
+    async function sendJarvisPreset(text) {
+      const input = document.getElementById('jarvis-text-input');
+      if (input) input.value = text;
+      await sendJarvisText();
+    }
+
+    async function sendJarvisText() {
+      const input = document.getElementById('jarvis-text-input');
+      const text = input ? input.value.trim() : '';
+      if (!text) return;
+
+      input.value = '';
+      haptic(20);
+      appendJarvisBubble('user', text);
+
+      const statusEl = document.getElementById('jarvis-voice-status');
+      if (statusEl) statusEl.innerHTML = '<span class="text-cyan-400 animate-pulse font-semibold">JARVIS sedang berpikir...</span>';
+
+      try {
+        const res = await apiPost('/api/jarvis/message', {
+          text: text,
+          audio_target: jarvisAudioTarget
+        });
+
+        if (res && res.reply) {
+          appendJarvisBubble('jarvis', res.reply);
+          if (jarvisAudioTarget === 'phone' && res.audio_base64) {
+            playBase64Wav(res.audio_base64);
+          }
+        } else if (res && res.error) {
+          appendJarvisBubble('jarvis', `Error: ${res.error}`);
+        } else {
+          appendJarvisBubble('jarvis', 'Perintah berhasil dikirim ke JARVIS.');
+        }
+      } catch (err) {
+        appendJarvisBubble('jarvis', `Koneksi gagal: ${err.message}`);
+      } finally {
+        if (statusEl) statusEl.innerHTML = '<span>Tahan atau ketuk mic untuk bicara</span>';
+      }
+    }
+
+    // --- Web Audio 16kHz PCM WAV Microphone Pipeline ---
+    function encode16kMonoWav(samples, sampleRate) {
+      const buffer = new ArrayBuffer(44 + samples.length * 2);
+      const view = new DataView(buffer);
+
+      function writeString(offset, string) {
+        for (let i = 0; i < string.length; i++) {
+          view.setUint8(offset + i, string.charCodeAt(i));
+        }
+      }
+
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + samples.length * 2, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true); // PCM format
+      view.setUint16(22, 1, true); // 1 channel (mono)
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, 'data');
+      view.setUint32(40, samples.length * 2, true);
+
+      let offset = 44;
+      for (let i = 0; i < samples.length; i++, offset += 2) {
+        let s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      }
+
+      return new Blob([view], { type: 'audio/wav' });
+    }
+
+    async function startJarvisRecording() {
+      if (jarvisIsRecording) return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            channelCount: 1,
+            sampleRate: 16000,
+            echoCancellation: true,
+            noiseSuppression: true
+          }
+        });
+
+        jarvisMediaStream = stream;
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        jarvisAudioContext = new AudioContextClass({ sampleRate: 16000 });
+        const source = jarvisAudioContext.createMediaStreamSource(stream);
+        jarvisAudioProcessor = jarvisAudioContext.createScriptProcessor(4096, 1, 1);
+        jarvisAudioChunks = [];
+
+        jarvisAudioProcessor.onaudioprocess = (e) => {
+          if (!jarvisIsRecording) return;
+          const inputData = e.inputBuffer.getChannelData(0);
+          jarvisAudioChunks.push(new Float32Array(inputData));
+        };
+
+        source.connect(jarvisAudioProcessor);
+        jarvisAudioProcessor.connect(jarvisAudioContext.destination);
+
+        jarvisIsRecording = true;
+        haptic(35);
+
+        // Visual update
+        const glow = document.getElementById('jarvis-mic-glow');
+        const micBtn = document.getElementById('jarvis-mic-btn');
+        const statusEl = document.getElementById('jarvis-voice-status');
+
+        if (glow) glow.classList.remove('opacity-0');
+        if (micBtn) {
+          micBtn.classList.remove('border-cyan-500/40', 'text-cyan-400');
+          micBtn.classList.add('border-red-500', 'text-red-400', 'bg-red-950/30');
+        }
+        if (statusEl) {
+          statusEl.innerHTML = '<span class="text-red-400 animate-pulse font-bold flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> Merekam suara... Lepas untuk mengirim</span>';
+        }
+      } catch (err) {
+        console.error('Microphone access denied:', err);
+        showToast('Izin mikrofon diperlukan: ' + err.message, 'error');
+      }
+    }
+
+    async function stopJarvisRecording() {
+      if (!jarvisIsRecording) return;
+      jarvisIsRecording = false;
+      haptic(20);
+
+      const glow = document.getElementById('jarvis-mic-glow');
+      const micBtn = document.getElementById('jarvis-mic-btn');
+      const statusEl = document.getElementById('jarvis-voice-status');
+
+      if (glow) glow.classList.add('opacity-0');
+      if (micBtn) {
+        micBtn.classList.add('border-cyan-500/40', 'text-cyan-400');
+        micBtn.classList.remove('border-red-500', 'text-red-400', 'bg-red-950/30');
+      }
+      if (statusEl) {
+        statusEl.innerHTML = '<span class="text-cyan-400 animate-pulse font-semibold">Mengirim & mentranskripsi suara...</span>';
+      }
+
+      // Cleanup stream
+      if (jarvisAudioProcessor) {
+        try { jarvisAudioProcessor.disconnect(); } catch (e) {}
+      }
+      if (jarvisAudioContext) {
+        try { jarvisAudioContext.close(); } catch (e) {}
+      }
+      if (jarvisMediaStream) {
+        jarvisMediaStream.getTracks().forEach(t => t.stop());
+      }
+
+      // Flatten audio chunks
+      let totalLength = 0;
+      for (const chunk of jarvisAudioChunks) totalLength += chunk.length;
+      if (totalLength < 1600) {
+        if (statusEl) statusEl.innerHTML = '<span>Rekaman terlalu singkat</span>';
+        setTimeout(() => {
+          if (statusEl) statusEl.innerHTML = '<span>Tahan atau ketuk mic untuk bicara</span>';
+        }, 1500);
+        return;
+      }
+
+      const mergedSamples = new Float32Array(totalLength);
+      let offset = 0;
+      for (const chunk of jarvisAudioChunks) {
+        mergedSamples.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      const wavBlob = encode16kMonoWav(mergedSamples, 16000);
+      const formData = new FormData();
+      formData.append('audio', wavBlob, 'recording.wav');
+      formData.append('audio_target', jarvisAudioTarget);
+
+      try {
+        const res = await fetch('/api/jarvis/voice', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+
+        if (data.transcription) {
+          appendJarvisBubble('user', data.transcription);
+        }
+        if (data.reply) {
+          appendJarvisBubble('jarvis', data.reply);
+        } else if (data.response) {
+          appendJarvisBubble('jarvis', data.response);
+        }
+        if (jarvisAudioTarget === 'phone' && data.audio_base64) {
+          playBase64Wav(data.audio_base64);
+        }
+      } catch (err) {
+        appendJarvisBubble('jarvis', `Gagal memproses suara: ${err.message}`);
+      } finally {
+        if (statusEl) statusEl.innerHTML = '<span>Tahan atau ketuk mic untuk bicara</span>';
+      }
+    }
+
+    function setupJarvisMicListeners() {
+      const btn = document.getElementById('jarvis-mic-btn');
+      if (!btn) return;
+
+      // Mobile Touch events for Push-to-Talk
+      btn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        startJarvisRecording();
+      }, { passive: false });
+
+      btn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        stopJarvisRecording();
+      }, { passive: false });
+
+      btn.addEventListener('touchcancel', (e) => {
+        e.preventDefault();
+        stopJarvisRecording();
+      }, { passive: false });
+
+      // Desktop Click / Hold events
+      let mousePressed = false;
+      btn.addEventListener('mousedown', (e) => {
+        mousePressed = true;
+        startJarvisRecording();
+      });
+      window.addEventListener('mouseup', () => {
+        if (mousePressed) {
+          mousePressed = false;
+          stopJarvisRecording();
+        }
+      });
+    }
+
+window.addEventListener('DOMContentLoaded', () => {
       if (window.lucide) lucide.createIcons();
       initWebSocket();
       setupTouchpad();
       setupScrollStrip();
+      setupLiveScreenTouch();
+      setupModalScreenTouch();
+      setupJarvisMicListeners();
+      checkJarvisStatus();
+      setInterval(checkJarvisStatus, 5000);
       loadSystemStatus();
 
       // Polling telemetry status every 3.5s

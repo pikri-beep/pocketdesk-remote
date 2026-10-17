@@ -14,6 +14,7 @@ import platform
 import threading
 import subprocess
 import urllib.parse
+import asyncio
 from typing import List, Optional
 
 # Set console output encoding to UTF-8 for clean QR code & logs in Windows terminal
@@ -31,7 +32,7 @@ import pyautogui
 from PIL import Image
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, Response, JSONResponse, FileResponse
+from fastapi.responses import HTMLResponse, Response, JSONResponse, FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -282,6 +283,17 @@ class MouseClickRequest(BaseModel):
 class MouseScrollRequest(BaseModel):
     direction: str = "down"
     amount: int = 120
+
+class ScreenClickRequest(BaseModel):
+    x: float = 0.0
+    y: float = 0.0
+    button: str = "left"
+    clicks: int = 1
+
+
+class JarvisMessageRequest(BaseModel):
+    text: str
+    audio_target: Optional[str] = "laptop"
 
 
 # ---------------------------------------------------------------------------
@@ -721,28 +733,102 @@ async def api_open_drop_folder():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# --- Modul D: Live Peek Screen (Screenshot) ---
+# --- Modul D: Live Peek Screen (Screenshot & Live Stream) ---
 
-@app.get("/api/screen/peek")
-async def api_screen_peek():
-    """Capture laptop screen and return JPEG image optimized for mobile viewing."""
+def get_screen_jpeg(max_width: int = 960, quality: int = 60) -> bytes:
+    """Fast screen capture resized and encoded to JPEG for mobile streaming."""
     try:
         img = capture_screenshot()
-        # Resize thumbnail to max 1280px wide for speed while maintaining clarity
-        max_width = 1280
         if img.width > max_width:
             ratio = max_width / float(img.width)
             new_height = int(float(img.height) * ratio)
             img = img.resize((max_width, new_height), Image.Resampling.BILINEAR)
-
         buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=75, optimize=True)
-        buf.seek(0)
-        return Response(content=buf.getvalue(), media_type="image/jpeg", headers={
+        img.save(buf, format="JPEG", quality=quality, optimize=False)
+        return buf.getvalue()
+    except Exception as e:
+        print(f"[Screen Capture] Error: {e}")
+        buf = io.BytesIO()
+        Image.new("RGB", (640, 360), (15, 23, 42)).save(buf, format="JPEG")
+        return buf.getvalue()
+
+
+@app.get("/api/screen/peek")
+async def api_screen_peek():
+    """Capture laptop screen and return single JPEG image optimized for mobile viewing."""
+    try:
+        jpeg_data = get_screen_jpeg(max_width=1280, quality=75)
+        return Response(content=jpeg_data, media_type="image/jpeg", headers={
             "Cache-Control": "no-cache, no-store, must-revalidate",
             "Pragma": "no-cache",
             "Expires": "0"
         })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/screen/stream")
+async def api_screen_stream(fps: int = 8, quality: int = 60, width: int = 960):
+    """Real-time continuous MJPEG live stream of laptop desktop for live screening."""
+    fps = max(1, min(20, fps))
+    interval = 1.0 / fps
+
+    async def stream_frames():
+        loop = asyncio.get_event_loop()
+        try:
+            while True:
+                start_time = time.time()
+                frame_data = await loop.run_in_executor(None, get_screen_jpeg, width, quality)
+                header = (
+                    b"--frame\r\n"
+                    b"Content-Type: image/jpeg\r\n"
+                    b"Content-Length: " + str(len(frame_data)).encode() + b"\r\n\r\n"
+                )
+                yield header + frame_data + b"\r\n"
+                elapsed = time.time() - start_time
+                sleep_dur = max(0.01, interval - elapsed)
+                await asyncio.sleep(sleep_dur)
+        except (asyncio.CancelledError, GeneratorExit):
+            pass
+        except Exception:
+            pass
+
+    return StreamingResponse(
+        stream_frames(),
+        media_type="multipart/x-mixed-replace; boundary=frame",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+            "Connection": "close"
+        }
+    )
+
+
+@app.post("/api/screen/click")
+async def api_screen_click(req: ScreenClickRequest):
+    """Directly click at normalized (0.0 to 1.0) coordinates on the laptop screen."""
+    try:
+        sw, sh = pyautogui.size()
+        cx = int(max(0.0, min(1.0, req.x)) * (sw - 1))
+        cy = int(max(0.0, min(1.0, req.y)) * (sh - 1))
+        btn = "right" if req.button == "right" else "left"
+        clicks = max(1, min(3, req.clicks))
+        pyautogui.click(x=cx, y=cy, button=btn, clicks=clicks, _pause=False)
+        return {"success": True, "x": cx, "y": cy, "button": btn, "clicks": clicks}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/screen/move")
+async def api_screen_move(req: ScreenClickRequest):
+    """Move cursor to normalized (0.0 to 1.0) coordinates on laptop screen."""
+    try:
+        sw, sh = pyautogui.size()
+        cx = int(max(0.0, min(1.0, req.x)) * (sw - 1))
+        cy = int(max(0.0, min(1.0, req.y)) * (sh - 1))
+        pyautogui.moveTo(x=cx, y=cy, _pause=False)
+        return {"success": True, "x": cx, "y": cy}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -800,6 +886,122 @@ async def api_power_cancel_shutdown():
     """Cancel any pending shutdown."""
     subprocess.Popen(["shutdown", "/a"], shell=True)
     return {"success": True, "action": "cancel_shutdown"}
+
+
+# ---------------------------------------------------------------------------
+# JARVIS AI Voice & Chat Integration Endpoints
+# ---------------------------------------------------------------------------
+
+JARVIS_GATEWAY_URL = "http://127.0.0.1:8765"
+JARVIS_DIR = r"D:\JARVIS"
+
+
+@app.get("/api/jarvis/status")
+async def api_jarvis_status():
+    """Check JARVIS IPC gateway status."""
+    try:
+        async with httpx.AsyncClient(timeout=1.5) as client:
+            resp = await client.get(f"{JARVIS_GATEWAY_URL}/api/status")
+            if resp.status_code == 200:
+                data = resp.json()
+                return {
+                    "online": True,
+                    "model": data.get("model", "qwen3:8b"),
+                    "language": data.get("language", "id"),
+                    "version": data.get("version", "2.5")
+                }
+    except Exception:
+        pass
+    return {"online": False, "model": None, "language": "id", "version": None}
+
+
+@app.post("/api/jarvis/start")
+async def api_jarvis_start():
+    """Launch JARVIS on the laptop if it is not currently running."""
+    try:
+        async with httpx.AsyncClient(timeout=1.0) as client:
+            resp = await client.get(f"{JARVIS_GATEWAY_URL}/api/status")
+            if resp.status_code == 200:
+                return {"success": True, "message": "JARVIS is already running"}
+    except Exception:
+        pass
+
+    bat_path = os.path.join(JARVIS_DIR, "run_gui.bat")
+    if not os.path.exists(bat_path):
+        return {"success": False, "error": f"Launcher not found at {bat_path}"}
+
+    try:
+        flags = subprocess.CREATE_NEW_CONSOLE if platform.system() == "Windows" else 0
+        subprocess.Popen(["cmd.exe", "/c", bat_path], cwd=JARVIS_DIR, creationflags=flags)
+        return {"success": True, "message": "JARVIS is starting..."}
+    except Exception as exc:
+        return {"success": False, "error": str(exc)}
+
+
+@app.post("/api/jarvis/message")
+async def api_jarvis_message(req: JarvisMessageRequest):
+    """Relay text command to JARVIS Gateway."""
+    cmd_text = req.text.strip()
+    if not cmd_text:
+        raise HTTPException(status_code=400, detail="Text cannot be empty")
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                f"{JARVIS_GATEWAY_URL}/api/process",
+                json={"text": cmd_text, "audio_target": req.audio_target or "laptop"}
+            )
+            if resp.status_code == 200:
+                return resp.json()
+            else:
+                return JSONResponse(status_code=resp.status_code, content=resp.json())
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="JARVIS is offline. Start JARVIS first.")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/jarvis/voice")
+async def api_jarvis_voice(audio: UploadFile = File(...), audio_target: str = Form("laptop")):
+    """Upload voice recording from phone, transcribe using JARVIS Whisper, and process command."""
+    audio_bytes = await audio.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="Empty audio recording")
+
+    try:
+        async with httpx.AsyncClient(timeout=35.0) as client:
+            # 1. Transcribe via JARVIS Gateway
+            transcribe_resp = await client.post(
+                f"{JARVIS_GATEWAY_URL}/api/transcribe",
+                content=audio_bytes,
+                headers={"Content-Type": "audio/wav"}
+            )
+            if transcribe_resp.status_code != 200:
+                detail = transcribe_resp.json().get("error", "Transcription failed")
+                raise HTTPException(status_code=transcribe_resp.status_code, detail=detail)
+
+            transcription = transcribe_resp.json().get("transcription", "").strip()
+            if not transcription:
+                return {
+                    "success": False,
+                    "transcription": "",
+                    "reply": "Suara tidak terdengar jelas atau terlalu hening, sir.",
+                    "audio_base64": ""
+                }
+
+            # 2. Process command
+            process_resp = await client.post(
+                f"{JARVIS_GATEWAY_URL}/api/process",
+                json={"text": transcription, "audio_target": audio_target}
+            )
+            data = process_resp.json()
+            data["transcription"] = transcription
+            return data
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="JARVIS is offline. Start JARVIS first.")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 # ---------------------------------------------------------------------------
