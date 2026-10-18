@@ -677,6 +677,10 @@ async def api_shortcut(req: ShortcutRequest):
         pyautogui.hotkey('win', 'd', _pause=False)
     elif sc == "space":
         pyautogui.press('space', _pause=False)
+    elif sc == "win":
+        pyautogui.press('win', _pause=False)
+    elif sc == "back":
+        pyautogui.hotkey('alt', 'left', _pause=False)
     else:
         raise HTTPException(status_code=400, detail="Shortcut tidak dikenal")
     return {"success": True, "shortcut": sc}
@@ -943,7 +947,7 @@ async def api_jarvis_message(req: JarvisMessageRequest):
     """Relay text command to JARVIS Gateway."""
     cmd_text = req.text.strip()
     if not cmd_text:
-        raise HTTPException(status_code=400, detail="Text cannot be empty")
+        return {"success": False, "error": "Teks perintah tidak boleh kosong."}
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(
@@ -953,11 +957,20 @@ async def api_jarvis_message(req: JarvisMessageRequest):
             if resp.status_code == 200:
                 return resp.json()
             else:
-                return JSONResponse(status_code=resp.status_code, content=resp.json())
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="JARVIS is offline. Start JARVIS first.")
+                try:
+                    err_data = resp.json()
+                    err_msg = err_data.get("error") or err_data.get("detail") or "Gagal memproses di JARVIS."
+                except Exception:
+                    err_msg = f"HTTP {resp.status_code}"
+                return {"success": False, "error": err_msg}
+    except (httpx.ConnectError, httpx.TimeoutException):
+        return {
+            "success": False,
+            "error": "JARVIS di laptop sedang offline atau belum siap. Silakan klik tombol 'Nyalakan JARVIS'.",
+            "offline": True
+        }
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        return {"success": False, "error": str(exc)}
 
 
 @app.post("/api/jarvis/voice")
@@ -965,7 +978,7 @@ async def api_jarvis_voice(audio: UploadFile = File(...), audio_target: str = Fo
     """Upload voice recording from phone, transcribe using JARVIS Whisper, and process command."""
     audio_bytes = await audio.read()
     if not audio_bytes:
-        raise HTTPException(status_code=400, detail="Empty audio recording")
+        return {"success": False, "error": "Rekaman suara kosong."}
 
     try:
         async with httpx.AsyncClient(timeout=35.0) as client:
@@ -976,8 +989,11 @@ async def api_jarvis_voice(audio: UploadFile = File(...), audio_target: str = Fo
                 headers={"Content-Type": "audio/wav"}
             )
             if transcribe_resp.status_code != 200:
-                detail = transcribe_resp.json().get("error", "Transcription failed")
-                raise HTTPException(status_code=transcribe_resp.status_code, detail=detail)
+                try:
+                    detail = transcribe_resp.json().get("error", "Transkripsi gagal.")
+                except Exception:
+                    detail = "Transkripsi gagal."
+                return {"success": False, "error": detail}
 
             transcription = transcribe_resp.json().get("transcription", "").strip()
             if not transcription:
@@ -996,12 +1012,14 @@ async def api_jarvis_voice(audio: UploadFile = File(...), audio_target: str = Fo
             data = process_resp.json()
             data["transcription"] = transcription
             return data
-    except httpx.ConnectError:
-        raise HTTPException(status_code=503, detail="JARVIS is offline. Start JARVIS first.")
-    except HTTPException:
-        raise
+    except (httpx.ConnectError, httpx.TimeoutException):
+        return {
+            "success": False,
+            "error": "JARVIS di laptop sedang offline. Silakan klik 'Nyalakan JARVIS'.",
+            "offline": True
+        }
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        return {"success": False, "error": str(exc)}
 
 
 # ---------------------------------------------------------------------------
