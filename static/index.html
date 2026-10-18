@@ -1004,6 +1004,7 @@
 
     function handleFileUpload(e) {
       const files = e.target.files;
+      const fileInputEl = e.target;
       if (!files || !files.length) return;
       haptic(20);
 
@@ -1019,6 +1020,7 @@
         const file = files[i];
         pName.innerText = file.name;
         const form = new FormData();
+        form.append('files', file);
         form.append('file', file);
 
         const xhr = new XMLHttpRequest();
@@ -1033,7 +1035,7 @@
         xhr.onload = () => {
           if (xhr.status === 200) {
             showToast(`Berkas '${file.name}' berhasil dikirim!`, 'success');
-            setTimeout(() => { pBox.classList.add('hidden'); closeSheet('sheet-drop'); }, 1200);
+            setTimeout(() => { pBox.classList.add('hidden'); closeSheet('sheet-drop'); fileInputEl.value = ''; }, 1200);
           } else {
             showToast(`Gagal mengunggah '${file.name}'`, 'error');
           }

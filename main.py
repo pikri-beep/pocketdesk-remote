@@ -689,34 +689,45 @@ async def api_shortcut(req: ShortcutRequest):
 # --- Modul D: Quick File Drop & Open Folder ---
 
 @app.post("/api/upload")
-async def api_upload_files(files: List[UploadFile] = File(...)):
-    """Accept single or multiple file uploads and save to ~/Downloads/PocketDesk_Drop."""
+async def api_upload_files(request: Request):
+    """Accept single or multiple file uploads via multipart form and save to ~/Downloads/PocketDesk_Drop."""
+    try:
+        form = await request.form()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Gagal memproses form berkas: {exc}")
+
     saved_files = []
     total_bytes = 0
 
-    for file in files:
-        # Sanitize filename
-        clean_name = os.path.basename(file.filename)
-        dest_path = os.path.join(DROP_DIR, clean_name)
-        
-        # Avoid accidental overwrite by suffixing number if exists
-        base, ext = os.path.splitext(clean_name)
-        counter = 1
-        while os.path.exists(dest_path):
-            clean_name = f"{base}_{counter}{ext}"
-            dest_path = os.path.join(DROP_DIR, clean_name)
-            counter += 1
+    for key in form:
+        values = form.getlist(key) if hasattr(form, "getlist") else [form.get(key)]
+        for file in values:
+            if hasattr(file, "filename") and file.filename and hasattr(file, "read"):
+                # Sanitize filename
+                clean_name = os.path.basename(file.filename)
+                dest_path = os.path.join(DROP_DIR, clean_name)
 
-        content = await file.read()
-        total_bytes += len(content)
-        with open(dest_path, "wb") as f_out:
-            f_out.write(content)
+                # Avoid accidental overwrite by suffixing number if exists
+                base, ext = os.path.splitext(clean_name)
+                counter = 1
+                while os.path.exists(dest_path):
+                    clean_name = f"{base}_{counter}{ext}"
+                    dest_path = os.path.join(DROP_DIR, clean_name)
+                    counter += 1
 
-        saved_files.append({
-            "name": clean_name,
-            "size": len(content),
-            "path": dest_path
-        })
+                content = await file.read()
+                total_bytes += len(content)
+                with open(dest_path, "wb") as f_out:
+                    f_out.write(content)
+
+                saved_files.append({
+                    "name": clean_name,
+                    "size": len(content),
+                    "path": dest_path
+                })
+
+    if not saved_files:
+        raise HTTPException(status_code=400, detail="Tidak ada berkas yang diunggah.")
 
     return {
         "success": True,
